@@ -60,6 +60,7 @@ namespace neah
                 for (int y = 0; y < Height; y++)
                 {
                     cells[x, y] = defaultValue;
+                    
                 }
             }
         }

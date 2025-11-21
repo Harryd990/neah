@@ -6,7 +6,7 @@ internal class Program
     {
         
         Grid grid = new Grid(8, 8);
-        grid.innitializeGrid("{}");
+        grid.innitializeGrid("[]");
         grid.PrintGrid();
         Console.ReadLine();
     }
