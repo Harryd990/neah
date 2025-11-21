@@ -23,5 +23,12 @@ namespace neah
         {
             return cells[x, y];
         }
+
+        public void SetCell(int x, int y, string value)
+        {
+            cells[x, y] = value;
+        }   
+
+
     }
 }
