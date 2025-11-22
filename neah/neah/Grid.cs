@@ -66,10 +66,10 @@ namespace neah
 
         public string GetCellDetails(int x, int y)
         {
-            string output = $"Cell {x},{y}\nCell Contents:\n";
+            string output = $"Cell {x},{y}\nCell Contents: \n";
             foreach (Entity e in GetCellAtLocation(x, y).Entities)
             {
-                output += $"{e.Id}\n{e.Species}";
+                output += $"ID : {e.Id} Species: {e.Species}";
             }
             return output;
         }
