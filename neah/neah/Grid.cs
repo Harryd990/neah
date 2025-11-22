@@ -1,68 +1,62 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace neah
 {
-    public class Grid
+    internal class Grid
     {
-        public int Width {get;}
-        public int Height {get;}
-        private string[,]cells;
-        public Grid(int width, int height)
-        {
-            Width = width;
-            Height = height;
-            cells = new string[width, height];
+        // properties
+        public int width {  get; private set; }
+        public int height { get; private set; }
+        private Cell[,] cells;
+        
+        public Grid(int w, int h) 
+        { 
+            width = w;
+            height = h;
+            //create array of empty slots for cells.
+            cells = new Cell[w, h];
 
-
-        }
-        public string GetCell(int x, int y)
-        {
-            return cells[x, y];
-        }
-
-        public void SetCell(int x, int y, string value)
-        {
-            cells[x, y] = value;
-        }
-        public void ClearCell(int x, int y)
-        {
-            cells[x, y] = null;
-        }
-        public void ClearGrid()
-        {
-            for (int x = 0; x < Width; x++)
+            // create the cell objects in each slot
+            for (int y=0; y<w; y++)
             {
-                for (int y = 0; y < Height; y++)
+                for (int x=0; x<h; x++)
                 {
-                    cells[x, y] = null;
+                    cells[x, y] = new Cell(x, y);
                 }
             }
         }
-        public void PrintGrid()
+
+        public Cell GetCellAtLocation(int x, int y)
         {
-            for (int y = 0; y < Height; y++)
-            {
-                for (int x = 0; x < Width; x++)
-                {
-                    Console.Write(cells[x, y]);
-                }
-                Console.WriteLine();
-            }
+            if (IsInGridRange(x,y)) return cells[x, y];
+            else throw new InvalidOperationException("Not in range");
+                
         }
-        public void innitializeGrid(string defaultValue)
+        public void AddEntityToCellLocation(int x, int y, Entity thing)
         {
-            for (int x = 0; x < Width; x++)
+   
+            cells[x,y].AddEntity(thing);
+        }
+        public bool IsInGridRange(int x, int y)
+        {
+            //check if x,y is in range
+            return !((x < 0 || y < 0) || (x >= width || y >= height));
+   
+        }
+
+        public string GetCellDetails(int x, int y)
+        {
+            string output = $"Cell {x},{y}\nCell Contents:\n";
+            foreach (Entity e in GetCellAtLocation(x, y).Entities)
             {
-                for (int y = 0; y < Height; y++)
-                {
-                    cells[x, y] = defaultValue;
-                    
-                }
+                output += $"{e.Id}\n{e.Name}";
             }
+            return output;
         }
 
     }
