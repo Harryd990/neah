@@ -22,9 +22,13 @@ namespace neah
             cells = new Cell[w, h];
 
             // create the cell objects in each slot
-            for (int y=0; y<w; y++)
+            for (int x=0; x<w; x++)
             {
-                for (int x=0; x<h; x++)
+                for (int y=0; y<h/4; y++)
+                {
+                    cells[x, y] = new Air(x, y);
+                }
+                for (int y=h/4; y<h; y++)
                 {
                     cells[x, y] = new Dirt(x, y);
                 }
@@ -54,7 +58,7 @@ namespace neah
             string output = $"Cell {x},{y}\nCell Contents:\n";
             foreach (Entity e in GetCellAtLocation(x, y).Entities)
             {
-                output += $"{e.Id}\n{e.Name}";
+                output += $"{e.Id}\n{e.Species}";
             }
             return output;
         }
@@ -68,6 +72,10 @@ namespace neah
                 }
                 Console.WriteLine();
             }
+        }
+        public void ConvertToAir(int x, int y)
+        {
+            cells[x, y] = new Air(x, y);
         }
 
     }

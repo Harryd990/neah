@@ -6,16 +6,18 @@ using System.Threading.Tasks;
 
 namespace neah
 {
-    public class Entity
+    public abstract class Entity
     {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public Entity(int id, string name, string description)
+        public abstract int Id { get; set; }
+        public abstract char Species { get; set; }
+
+        public abstract string Symbol { get; set; }
+
+        public Entity(int id, char Species)
         {
             Id = id;
-            Name = name;
-            Description = description;
+            this.Species = Species;
+
         }
     }
     

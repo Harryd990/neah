@@ -12,7 +12,7 @@ namespace neah
         {
         }
         public int digprogress { get; set; } = 0;
-        public override string Symbol => "@";
+        public override string Symbol => "[@]";
         public override bool IsTraversable => false;
     }
 }

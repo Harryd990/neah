@@ -28,7 +28,12 @@ namespace neah
         {
             Entities.Add(entity);
         }
+        public void RemoveEntity (Entity entity)
+        {
+            Entities.Remove(entity);
+        }
         
+
     }
 }
     

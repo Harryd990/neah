@@ -7,11 +7,11 @@ internal class Program
         
         Grid grid = new Grid(8, 8);
         
-        Entity first  = new Entity(1,"Bob","the first entity");
+        Entity first  = new Ant(1,'A');
         
         grid.AddEntityToCellLocation(1, 1, first);
 
-        // Console.WriteLine(grid.GetCellDetails(1, 1));
+        Console.WriteLine(grid.GetCellDetails(1, 1));
 
         grid.PrintGrid();
         

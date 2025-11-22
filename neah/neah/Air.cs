@@ -12,8 +12,12 @@ namespace neah
         {
 
         }
-        public override string Symbol => "[]";
+        
+
         public override bool IsTraversable => true;
+        public override string Symbol => Entities.Count > 0
+            ? $"[{Entities[0].Species}]"
+            : "[ ]";
     }
 
 }
