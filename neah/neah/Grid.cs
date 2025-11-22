@@ -9,6 +9,8 @@ namespace neah
 {
     internal class Grid
     {
+        Random random = new Random();
+
         // properties
         public int width {  get; private set; }
         public int height { get; private set; }
@@ -30,7 +32,16 @@ namespace neah
                 }
                 for (int y=h/4; y<h; y++)
                 {
-                    cells[x, y] = new Dirt(x, y);
+                    int num = random.Next(10);
+                    if (num == 0) 
+                    {
+                        cells[x, y] = new stone(x, y);
+                    }
+                    else
+                    {
+                        cells[x, y] = new Dirt(x, y);
+                    }
+                        
                 }
             }
         }

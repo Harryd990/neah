@@ -12,6 +12,7 @@ namespace neah
         {
         }
         public int digprogress { get; set; } = 0;
+        public virtual int hardness { get; set; } = 1;
         public override string Symbol => "[@]";
         public override bool IsTraversable => false;
     }
