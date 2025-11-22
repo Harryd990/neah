@@ -6,11 +6,13 @@ using System.Threading.Tasks;
 
 namespace neah
 {
-    internal class Cell
+    public abstract class Cell
     {
         public int X { get; set; }
         public int Y { get; set; }
-        public bool Is_air { get; set; }
+        public abstract bool IsTraversable { get; }
+        public abstract string Symbol { get; }
+
 
         public List<Entity> Entities { get; } = new List<Entity>();
 
@@ -18,7 +20,7 @@ namespace neah
         {
             X = x;
             Y = y;
-            Is_air = true;
+            
             Entities = new List<Entity>();
         }
 

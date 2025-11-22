@@ -26,7 +26,7 @@ namespace neah
             {
                 for (int x=0; x<h; x++)
                 {
-                    cells[x, y] = new Cell(x, y);
+                    cells[x, y] = new Dirt(x, y);
                 }
             }
         }
@@ -58,6 +58,18 @@ namespace neah
             }
             return output;
         }
+        public void PrintGrid()
+        {
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    Console.Write(cells[x, y].Symbol);
+                }
+                Console.WriteLine();
+            }
+        }
 
     }
 }
+
