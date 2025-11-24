@@ -32,7 +32,11 @@ namespace neah
         {
             Entities.Remove(entity);
         }
-        
+        public static bool IsCellType(Cell cell, Type type)
+        {
+            return cell.GetType() == type;
+        }
+
 
     }
 }
