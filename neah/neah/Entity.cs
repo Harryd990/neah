@@ -13,7 +13,9 @@ namespace neah
 
         public abstract string Symbol { get; set; }
 
-        public Entity(int id, char Species)
+        public virtual (int,int) Position{ get; set; }
+
+    public Entity(int id, char Species)
         {
             Id = id;
             this.Species = Species;

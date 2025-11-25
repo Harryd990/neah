@@ -8,15 +8,18 @@ namespace neah
 {
     public class Game
     {
-        private Grid grid; 
+        private Grid grid;
+        
         public Game(int width, int height)
         {
             grid = new Grid(width, height);
         }
+        public int lastEntityId { get; set; } = 0;
         public void Initialize_Ants()
         {
             Random rand = new Random();
-            for (int i = 1; i <= 3; i++)
+            
+            for (int i =0; i <= 3;i++)
             {
                 
                 Entity ant = new Ant(i, 'A');
@@ -26,14 +29,14 @@ namespace neah
                 var cell = grid.GetCellAtLocation(x, y);
                 if (!Cell.IsCellType(cell, typeof(Air)))
                 {
-                    i--;
+                    lastEntityId--;
                     continue;
                 }
 
                 else
                 {
                     grid.AddEntityToCellLocation(x, y, ant);
-
+                    lastEntityId++;
                 }
                     
             }
@@ -51,6 +54,10 @@ namespace neah
                 
                 Thread.Sleep(100);
             }
+        }
+        public void AddEntityToGameGrid(int x, int y, Entity entity)
+        {
+            grid.AddEntityToCellLocation(x, y, entity);
         }
     }
 }

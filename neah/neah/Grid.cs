@@ -56,6 +56,7 @@ namespace neah
         {
    
             cells[x,y].AddEntity(thing);
+            thing.Position = (x, y);
         }
         public bool IsInGridRange(int x, int y)
         {
