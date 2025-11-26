@@ -24,6 +24,7 @@ namespace neah
                 
                 Entity ant = new Ant(i, 'A');
                 
+
                 int x = rand.Next(0, grid.width);
                 int y = rand.Next(0, grid.height);
                 var cell = grid.GetCellAtLocation(x, y);
@@ -35,7 +36,7 @@ namespace neah
 
                 else
                 {
-                    grid.AddEntityToCellLocation(x, y, ant);
+                    AddEntityToGameGrid(x, y, ant);
                     lastEntityId++;
                 }
                     
