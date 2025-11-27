@@ -29,7 +29,7 @@ namespace neah
             for (int i =0; i <= 3;i++)
             {
                 
-                Entity ant = new Ant(i, 'A');
+                Entity Worker = new Worker(i, 'A');
                 
 
                 int x = rand.Next(0, grid.width);
@@ -37,7 +37,7 @@ namespace neah
                 var cell = grid.GetCellAtLocation(x, grid.height / 4 - 1);
                 
                 
-                AddEntityToGameGrid(x, grid.height / 4 -1, ant);
+                AddEntityToGameGrid(x, grid.height / 4 -1, Worker);
                 lastEntityId++;
                 
                     

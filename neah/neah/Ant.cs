@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace neah
 {
-    public class Ant : Entity
+    public abstract class Ant : Entity
     {
         public Ant(int id, char Species) : base(id, Species)
         { 
@@ -14,8 +14,8 @@ namespace neah
         }
         
         public override int Id { get; set; }
-        public override char Species { get; set; } = 'A';
-        public override string Symbol { get; set; } = "[A]";
+        public override char Species { get; set; } = 'N';
+        public override string Symbol { get; set; } = "[N]";
 
         public int food { get; set; } = 0;
         public int maxfood { get; set; } = 5;

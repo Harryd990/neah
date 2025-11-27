@@ -21,7 +21,7 @@ namespace neah
             int y = Position.Item1;
             int x = Position.Item2;
 
-            var egg = new Ant(game.lastEntityId++, 'A');
+            var egg = new Worker(game.lastEntityId++, 'A');
             game.AddEntityToGameGrid(x, y, egg);
 
         }
