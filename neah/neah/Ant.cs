@@ -17,11 +17,11 @@ namespace neah
         public override char Species { get; set; } = 'N';
         public override string Symbol { get; set; } = "[N]";
 
-        public int food { get; set; } = 0;
-        public int maxfood { get; set; } = 5;
+        public virtual int food { get; set; } = 0;
+        public virtual int maxfood { get; set; } = 5;
 
-        public int carryingcapacity { get; set; } = 2;
-        public List<int> inventory { get; set; } = new List<int>();
+        public virtual int carryingcapacity { get; set; } = 2;
+        public virtual List<int> inventory { get; set; } = new List<int>();
 
         
 
