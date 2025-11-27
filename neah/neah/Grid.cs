@@ -30,9 +30,9 @@ namespace neah
                 {
                     cells[x, y] = new Air(x, y);
                 }
-                for (int y=h/4; y<h; y++)
+                for (int y=h/4; y<h/2; y++)
                 {
-                    int num = random.Next(10);
+                    int num = random.Next(15);
                     if (num == 0) 
                     {
                         cells[x, y] = new stone(x, y);
@@ -42,6 +42,19 @@ namespace neah
                         cells[x, y] = new Dirt(x, y);
                     }
                         
+                }
+                for (int y = h / 2; y < h; y++)
+                {
+                    int num = random.Next(2);
+                    if (num == 0)
+                    {
+                        cells[x, y] = new stone(x, y);
+                    }
+                    else
+                    {
+                        cells[x, y] = new Dirt(x, y);
+                    }
+
                 }
             }
         }
