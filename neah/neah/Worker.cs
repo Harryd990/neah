@@ -14,5 +14,14 @@ namespace neah
         }
         public override char Species { get; set; } = 'A';
         public override string Symbol { get; set; } = "[A]";
+
+        public void GatherFood(Game game)
+        {
+            // Implementation for gathering food
+        }
+        public void dig(Game game)
+        {
+            // Implementation for digging
+        }
     }
 }

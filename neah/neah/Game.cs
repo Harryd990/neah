@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
 using System.Security.AccessControl;
 using System.Text;
@@ -47,13 +48,12 @@ namespace neah
         public void Run()
         {
             bool running = true;
-
+            grid.PrintGrid();
             while (running)
             {
-                Console.Clear();
-                grid.PrintGrid();
-                var input = Console.ReadKey(true);
-                tick++;
+                
+                inputselector();
+
                 if (queen != null && queen.food == 4)
                 {
                     queen.food = 0;
@@ -69,6 +69,25 @@ namespace neah
         public void AddEntityToGameGrid(int x, int y, Entity entity)
         {
             grid.AddEntityToCellLocation(x, y, entity);
+        }
+        public void inputselector()
+        {
+            Console.WriteLine("1 : order the ants to dig \nanything else : end tick ");
+            var input = Console.ReadKey(true);
+            if (input.KeyChar == '1')
+            {
+                Console.WriteLine("please enter the x and y position of the thing you want to dig (x cord then enter y cord then entre)");
+                int x = int.Parse(Console.ReadLine());
+                int y = int.Parse(Console.ReadLine());
+            }
+            else
+            {
+                Console.Clear();
+                grid.PrintGrid();
+                tick++;
+
+            }
+            
         }
     }
 }
