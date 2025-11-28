@@ -6,7 +6,7 @@ internal class Program
     {
         
         Game game = new Game(15, 20);
-        game.Initialize_Ants();
+        game.Initialize_Game();
         
         game.Run();
 

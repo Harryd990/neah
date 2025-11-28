@@ -21,7 +21,7 @@ namespace neah
         }
         public int tick { get; set; } = 0;
         public int lastEntityId { get; set; } = 0;
-        public void Initialize_Ants()
+        public void Initialize_Game()
         {
             Random rand = new Random();
             queen = new Queen(0, 'Q');
@@ -43,7 +43,15 @@ namespace neah
                 
                     
             }
-            
+            for (int i = 0; i <= 1; i++)
+            {
+                Entity food = new Food(lastEntityId++, 0, 0);
+                int x = rand.Next(0, grid.width);
+                int y = rand.Next(0, grid.height/4);
+                AddEntityToGameGrid(x, y, food);
+                lastEntityId++;
+            }
+
         }
         public void Run()
         {
