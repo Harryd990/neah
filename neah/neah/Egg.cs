@@ -1,0 +1,27 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace neah
+{
+    internal class Egg : Entity
+    {
+        public Egg(int id, char Species) : base(id, Species) { }
+                public override int Id { get; set; }
+        public override char Species { get; set; } = 'E';
+        public override string Symbol { get; set; } = "[E]";
+
+        public int hatchTime { get; set; } = 20;
+        public void HatchEgg(Game game)
+        {
+            int y = Position.Item1;
+            int x = Position.Item2;
+            var worker = new Worker(game.lastEntityId++, 'A');
+            game.AddEntityToGameGrid(x, y, worker);
+        }
+
+
+    }
+}

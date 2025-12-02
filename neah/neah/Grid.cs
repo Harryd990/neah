@@ -26,10 +26,12 @@ namespace neah
             // create the cell objects in each slot
             for (int x=0; x<w; x++)
             {
+                // makes top quater air 
                 for (int y=0; y<h/4; y++)
                 {
                     cells[x, y] = new Air(x, y);
                 }
+                // makes rest dirt and some stone randomly
                 for (int y=h/4; y<h/2; y++)
                 {
                     int num = random.Next(15);
@@ -43,6 +45,7 @@ namespace neah
                     }
                         
                 }
+                // deeper down more stone
                 for (int y = h / 2; y < h; y++)
                 {
                     int num = random.Next(2);

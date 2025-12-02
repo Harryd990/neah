@@ -16,6 +16,7 @@ namespace neah
         public override char Species { get; set; } = 'Q';
         public override string Symbol { get; set; } = "[Q]";
 
+        // makes new egg at queen position
         public void LayEggs(Game game)
         {
             int y = Position.Item1;

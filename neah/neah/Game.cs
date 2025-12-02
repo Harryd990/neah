@@ -23,13 +23,14 @@ namespace neah
         public int lastEntityId { get; set; } = 0;
         public void Initialize_Game()
         {
+            // adds queen to centre of grid on the first bit of air 
             Random rand = new Random();
             queen = new Queen(0, 'Q');
             AddEntityToGameGrid(grid.width / 2,grid.height / 4 -1, queen);
 
             for (int i =0; i <= 3;i++)
             {
-                
+                // adds 4 workers along the first line of air
                 Entity Worker = new Worker(i, 'A');
                 
 
@@ -45,6 +46,7 @@ namespace neah
             }
             for (int i = 0; i <= 1; i++)
             {
+                // adds 2 bits of food in the air zone 
                 Entity food = new Food(lastEntityId++, 0, 0);
                 int x = rand.Next(0, grid.width);
                 int y = rand.Next(0, grid.height/4);
@@ -62,6 +64,7 @@ namespace neah
                 
                 inputselector();
 
+                // if queen has 4 food lay eggs 
                 if (queen != null && queen.food == 4)
                 {
                     queen.food = 0;

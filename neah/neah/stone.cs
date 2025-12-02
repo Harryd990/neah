@@ -12,7 +12,7 @@ namespace neah
         {
         }
         
-        public override int hardness { get; set; } = 5;
+        public override int hardness { get; set; } = 15;
         public override string Symbol => "[$]";
         
 
