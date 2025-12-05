@@ -13,7 +13,7 @@ namespace neah
 
         }
         
-
+       
         public override bool IsTraversable => true;
 
         // check if there is any entity in the cell if ther is then show that entitys symbol 

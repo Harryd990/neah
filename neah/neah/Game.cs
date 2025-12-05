@@ -17,7 +17,7 @@ namespace neah
         public Game(int width, int height)
         {
             grid = new Grid(width, height);
-            
+
         }
         public int tick { get; set; } = 0;
         public int lastEntityId { get; set; } = 0;
@@ -26,34 +26,38 @@ namespace neah
             // adds queen to centre of grid on the first bit of air 
             Random rand = new Random();
             queen = new Queen(0, 'Q');
-            AddEntityToGameGrid(grid.width / 2,grid.height / 4 -1, queen);
+            AddEntityToGameGrid(grid.width / 2, grid.height / 4 - 1, queen);
 
-            for (int i =0; i <= 3;i++)
+            for (int i = 0; i <= 3; i++)
             {
                 // adds 4 workers along the first line of air
                 Entity Worker = new Worker(i, 'A');
-                
+
 
                 int x = rand.Next(0, grid.width);
-                
+
                 var cell = grid.GetCellAtLocation(x, grid.height / 4 - 1);
-                
-                
-                AddEntityToGameGrid(x, grid.height / 4 -1, Worker);
+
+
+                AddEntityToGameGrid(x, grid.height / 4 - 1, Worker);
                 lastEntityId++;
-                
-                    
+
+
             }
             for (int i = 0; i <= 1; i++)
             {
                 // adds 2 bits of food in the air zone 
                 Entity food = new Food(lastEntityId++, 0, 0);
                 int x = rand.Next(0, grid.width);
-                int y = rand.Next(0, grid.height/4);
+                int y = rand.Next(0, grid.height / 4);
                 AddEntityToGameGrid(x, y, food);
                 lastEntityId++;
             }
 
+        }
+        public void ReplaceCellAtLocation(int x, int y, Cell newCell)
+        {
+            grid.ReplaceCellAtLocation(x, y, newCell);
         }
         public void Run()
         {
@@ -61,7 +65,7 @@ namespace neah
             grid.PrintGrid();
             while (running)
             {
-                
+
                 inputselector();
 
                 // if queen has 4 food lay eggs 
@@ -71,12 +75,12 @@ namespace neah
                     queen.LayEggs(this);
 
                 }
-                
+
 
                 Thread.Sleep(100);
             }
         }
-        
+
         public void AddEntityToGameGrid(int x, int y, Entity entity)
         {
             grid.AddEntityToCellLocation(x, y, entity);
@@ -90,6 +94,7 @@ namespace neah
                 Console.WriteLine("please enter the x and y position of the thing you want to dig (x cord then enter y cord then entre)");
                 int x = int.Parse(Console.ReadLine());
                 int y = int.Parse(Console.ReadLine());
+                dig(x, y);
             }
             else
             {
@@ -98,7 +103,22 @@ namespace neah
                 tick++;
 
             }
-            
+
+        }
+        public void dig(int x, int y)
+        {
+            Dirt dirtcell = (Dirt)grid.GetCellAtLocation(x, y);
+            dirtcell.digprogress++;
+            if (dirtcell.digprogress >= dirtcell.hardness)
+            {
+                // replace with air cell
+                ReplaceCellAtLocation(x, y, new Air(x, y));
+                // add sothing as a update so when dug it will re print the grid
+            }
+        }
+        public void printgrid()
+        {
+            grid.PrintGrid();
         }
     }
 }

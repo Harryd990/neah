@@ -105,6 +105,20 @@ namespace neah
         {
             cells[x, y] = new Air(x, y);
         }
+        public void ReplaceCellAtLocation(int x, int y, Cell newCell)
+        {
+            var oldCell = cells[x, y];
+            var entitiesToMove = oldCell.Entities.ToList();
+            foreach (var entity in entitiesToMove)
+            {
+                newCell.AddEntity(entity);
+            }
+            
+            cells[x, y] = newCell;
+            newCell.X = x;
+            newCell.Y = y;
+        }
+
 
     }
 }

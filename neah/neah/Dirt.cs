@@ -15,6 +15,8 @@ namespace neah
         public virtual int hardness { get; set; } = 5;
         public override string Symbol => "[@]";
         public override bool IsTraversable => false;
+
+        
     }
 }
 
