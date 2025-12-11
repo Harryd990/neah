@@ -1,4 +1,4 @@
-﻿using neah;
+﻿using neah.main;
 
 internal class Program
 {
