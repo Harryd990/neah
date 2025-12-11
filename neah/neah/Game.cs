@@ -107,14 +107,26 @@ namespace neah
         }
         public void dig(int x, int y)
         {
-            Dirt dirtcell = (Dirt)grid.GetCellAtLocation(x, y);
-            dirtcell.digprogress++;
-            if (dirtcell.digprogress >= dirtcell.hardness)
+            if (grid.GetCellAtLocation(x,y) is Dirt)
             {
-                // replace with air cell
-                ReplaceCellAtLocation(x, y, new Air(x, y));
-                // add sothing as a update so when dug it will re print the grid
+                Dirt dirtcell = (Dirt)grid.GetCellAtLocation(x, y);
+                dirtcell.digprogress++;
+                if (dirtcell.digprogress >= dirtcell.hardness)
+                {
+                    // replace with air cell
+                    ReplaceCellAtLocation(x, y, new Air(x, y));
+                    Console.Clear();
+                    printgrid();
+                    
+                }
+
             }
+            else
+            {
+               throw new InvalidOperationException("Cell is not dirt");
+            }
+
+
         }
         public void printgrid()
         {
