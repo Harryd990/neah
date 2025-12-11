@@ -20,6 +20,8 @@ namespace neah
             int x = Position.Item2;
             var worker = new Worker(game.lastEntityId++, 'A');
             game.AddEntityToGameGrid(x, y, worker);
+            game.lastEntityId++;
+            game.workercount++;
         }
 
 

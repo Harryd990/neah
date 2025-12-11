@@ -19,8 +19,12 @@ namespace neah
             grid = new Grid(width, height);
 
         }
+        public int workercount { get; set; } = 0;
+        public int GridWidth => grid.width;
+        public int GridHeight => grid.height;
         public int tick { get; set; } = 0;
         public int lastEntityId { get; set; } = 0;
+        public int QueenFoodCount => queen?.food ?? 0;
         public void Initialize_Game()
         {
             // adds queen to centre of grid on the first bit of air 
@@ -41,6 +45,7 @@ namespace neah
 
                 AddEntityToGameGrid(x, grid.height / 4 - 1, Worker);
                 lastEntityId++;
+                workercount++;
 
 
             }
@@ -85,6 +90,7 @@ namespace neah
         {
             grid.AddEntityToCellLocation(x, y, entity);
         }
+        
         public void inputselector()
         {
             Console.WriteLine("1 : order the ants to dig \nanything else : end tick ");
