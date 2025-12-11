@@ -19,6 +19,16 @@ namespace neah.algorithm
         {
             tasks.Add(newtask);
         }
+        public void removetask(int taskid)
+        {
+            for (int i = 0; i < tasks.Count; i++)
+            {
+                if (tasks[i].id == taskid)
+                {
+                    tasks.RemoveAt(i);
+                }
+            }
+        }
         public task getnexttask(Game game)
         {
             if (tasks.Count == 0)
@@ -37,9 +47,16 @@ namespace neah.algorithm
                     }
                 }
             }
-            task nexttask = tasks[0];
-            tasks.RemoveAt(0);
-            return nexttask;
+            else
+            {
+                task nexttask = tasks[0];
+                tasks.RemoveAt(0);
+                return nexttask;
+
+            }
+            throw new Exception("taks isnt working");
+
+
         }
         public void checkwander(Game game)
         {
