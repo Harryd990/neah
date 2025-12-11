@@ -12,7 +12,9 @@ namespace neah.entetys
         { 
 
         }
-        
+        public int clamedClassid { get; set; } = -1;
+        // -1 means no class claimed
+        // add stuff for queue so once ant has clamed a task it wont claim another till done
         public override int Id { get; set; }
         public override char Species { get; set; } = 'N';
         public override string Symbol { get; set; } = "[N]";
