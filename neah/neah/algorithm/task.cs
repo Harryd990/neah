@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace neah.algorithm
 {
-    internal class task
+    public class task
     {
         public int id;
         public string tasktype;

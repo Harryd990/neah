@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace neah.algorithm
 {
-    internal class queue
+    public class queue
     {
         public queue()
         {
@@ -61,16 +61,7 @@ namespace neah.algorithm
 
 
         }
-        public void checkwander(Game game)
-        {
-            if (tasks.Count < game.lastEntityId)
-            {
-                Random rand = new Random();
-                int x = rand.Next (game.GridWidth);
-                int y = rand.Next(0, game.GridHeight / 4);
-                addtask(new task(lasttaskid + 1, "wander", (x, y)));
-            }
-        }
+        
     }
     // add priority queue for ant tasks but priorities should change dynamicaly based off average ant food levels 
 }

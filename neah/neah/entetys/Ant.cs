@@ -1,4 +1,6 @@
-﻿using System;
+﻿using neah.algorithm;
+using neah.main;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,6 +15,7 @@ namespace neah.entetys
 
         }
         public int clamedtaskid { get; set; } = -1;
+        public task Currenttask { get; set; }
         // -1 means no class claimed
         // add stuff for queue so once ant has clamed a task it wont claim another till done
         public override int Id { get; set; }
@@ -30,6 +33,8 @@ namespace neah.entetys
         {
             return inventory.Count > 0;
         }*/
+
+        
 
     }
 }

@@ -1,4 +1,5 @@
-﻿using neah.entetys;
+﻿using neah.algorithm;
+using neah.entetys;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -139,5 +140,23 @@ namespace neah.main
         {
             grid.PrintGrid();
         }
+        public void antwander(queue queue, Ant ant )
+        {
+            if (queue.tasks.Count == 0 && ant.clamedtaskid == -1)
+            {
+                Random rand = new Random();
+                int x = rand.Next(GridWidth);
+                int y = rand.Next(0, GridHeight / 4);
+                task wander = new task(queue.lasttaskid++, "wander", (x, y));
+                ant.Currenttask = wander;
+            }
+        }
+        /*
+         * Algorithm :
+         * find closest ant to end position that doesnt already have a task 
+         * work out path to end position
+         * send and to end position 
+         * 
+         */
     }
 }
