@@ -158,7 +158,57 @@ namespace neah.main
          * find closest ant to end position that doesnt already have a task 
          * work out path to end position
          * send and to end position 
-         * 
+         *  starting point will be the end goal eg food then djikstas from there to find the closest ant and then resverse path and get ant to follow it 
          */
+        public void ClosestAnt(task task)
+        {
+            List<Ant> ants = new List<Ant>();
+            for(int x = 0; x < grid.width; x++)
+            {
+                for (int y = 0; y < grid.height; y++)
+                {
+                    var  cell = grid.GetCellAtLocation(x, y);
+                    foreach (var entity in cell.Entities)
+                    {
+                        if (entity is Ant)
+                        {
+                            Ant ant = (Ant)entity;
+                            if (ant.clamedtaskid == -1)
+                            {
+                                ants.Add(ant);
+                            }
+                        }
+                    }
+                }
+            }
+            if(ants.Count == 0)
+            {
+                throw new Exception("no ants cn task");
+            }
+            int xpos = task.targetposition.Item1;
+            int ypos = task.targetposition.Item2;
+            Ant closestant = null;
+            int closestdistance = int.MaxValue;
+            foreach (var ant in ants)
+            {
+                int distance = Math.Abs(ant.Position.Item1 - xpos) + Math.Abs(ant.Position.Item2 - ypos);
+                if (distance < closestdistance)
+                {
+                    closestdistance = distance;
+                    closestant = ant;
+                }
+            }
+            if(closestant != null)
+            {
+                closestant.Currenttask = task;
+                closestant.clamedtaskid = task.id;
+            }
+            else
+            {
+                throw new Exception("no ants cn task");
+            }
+        }
+        
+
     }
 }
