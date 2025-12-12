@@ -1,4 +1,5 @@
-﻿using neah.main;
+﻿using neah.entetys;
+using neah.main;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,7 +30,7 @@ namespace neah.algorithm
                 }
             }
         }
-        public task getnexttask(Game game)
+        public task getnexttask(Game game, Ant ant)
         {
             if (tasks.Count == 0)
             {
@@ -43,6 +44,7 @@ namespace neah.algorithm
                     {
                         task foodtask = tasks[i];
                         tasks.RemoveAt(i);
+                        ant.clamedtaskid = foodtask.id;
                         return foodtask;
                     }
                 }
@@ -51,6 +53,7 @@ namespace neah.algorithm
             {
                 task nexttask = tasks[0];
                 tasks.RemoveAt(0);
+                ant.clamedtaskid = nexttask.id;
                 return nexttask;
 
             }
