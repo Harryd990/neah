@@ -27,6 +27,7 @@ namespace neah.entetys
 
         public virtual int carryingcapacity { get; set; } = 2;
         public virtual List<int> inventory { get; set; } = new List<int>();
+        
 
         public virtual List<string> path { get; set; } = new List<string>();
         /*public virtual void Pathfind()
