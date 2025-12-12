@@ -15,11 +15,12 @@ namespace neah.main
     {
         private Grid grid;
         private Queen queen;
+        public queue queue1 = new queue();
 
         public Game(int width, int height)
         {
             grid = new Grid(width, height);
-
+            queue1 = new queue();
         }
         public int workercount { get; set; } = 0;
         public int GridWidth => grid.width;
@@ -102,7 +103,7 @@ namespace neah.main
                 Console.WriteLine("please enter the x and y position of the thing you want to dig (x cord then enter y cord then entre)");
                 int x = int.Parse(Console.ReadLine());
                 int y = int.Parse(Console.ReadLine());
-                dig(x, y);
+                task digtask = new task(queue1.lasttaskid++, "dig", (x, y));
             }
             else
             {
@@ -140,14 +141,14 @@ namespace neah.main
         {
             grid.PrintGrid();
         }
-        public void antwander(queue queue, Ant ant )
+        public void antwander(Ant ant )
         {
-            if (queue.tasks.Count == 0 && ant.clamedtaskid == -1)
+            if (queue1.tasks.Count == 0 && ant.clamedtaskid == -1)
             {
                 Random rand = new Random();
                 int x = rand.Next(GridWidth);
                 int y = rand.Next(0, GridHeight / 4);
-                task wander = new task(queue.lasttaskid++, "wander", (x, y));
+                task wander = new task(queue1.lasttaskid++, "wander", (x, y));
                 ant.Currenttask = wander;
                 ant .clamedtaskid = -1;
             }
