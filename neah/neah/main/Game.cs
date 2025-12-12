@@ -149,6 +149,7 @@ namespace neah.main
                 int y = rand.Next(0, GridHeight / 4);
                 task wander = new task(queue.lasttaskid++, "wander", (x, y));
                 ant.Currenttask = wander;
+                ant .clamedtaskid = -1;
             }
         }
         /*
