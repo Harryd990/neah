@@ -126,7 +126,7 @@ namespace neah.main
                     ReplaceCellAtLocation(x, y, new Air(x, y));
                     Console.Clear();
                     printgrid();
-                    
+                    // every tick must call again to dig untill it is done 
                 }
 
             }
@@ -208,7 +208,18 @@ namespace neah.main
                 throw new Exception("no ants cn task");
             }
         }
-        
+        public void pathfind(Ant ant)
+        {
+            var start = ant.Position;
+            var end = ant.Currenttask.targetposition;
+            // check if start and end are the same
+            // check area around ant to see if its full boxed
+            // if any of these then thwrow exception
+            // implement djikstras algorithm
+
+            // return path into ant path list then ant moves along it each tick
+        }
+
 
     }
 }

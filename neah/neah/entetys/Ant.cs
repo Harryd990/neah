@@ -3,6 +3,7 @@ using neah.main;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices.Marshalling;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -29,13 +30,30 @@ namespace neah.entetys
         public virtual List<int> inventory { get; set; } = new List<int>();
         
 
-        public virtual List<string> path { get; set; } = new List<string>();
-        /*public virtual void Pathfind()
+        public virtual List<int> path { get; set; } = new List<int>();
+        public virtual void Move(int direction)
         {
-            return inventory.Count > 0;
-        }*/
-
+            switch (direction)
+            {
+                case 1:
+                    Position = (Position.Item1, Position.Item2 - 1);
+                    break;
+                case 2:
+                    Position = (Position.Item1, Position.Item2 + 1);
+                    break;
+                case 3:
+                    Position = (Position.Item1 - 1, Position.Item2);
+                    break;
+                case 4:
+                    Position = (Position.Item1 + 1, Position.Item2);
+                    break;
+                default:
+                    throw new InvalidOperationException("Invalid direction");
+            }
+        }
         
+
+
 
     }
 }
