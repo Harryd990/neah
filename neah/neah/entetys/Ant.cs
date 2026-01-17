@@ -26,11 +26,18 @@ namespace neah.entetys
         public virtual int food { get; set; } = 0;
         public virtual int maxfood { get; set; } = 5;
 
-        public virtual int carryingcapacity { get; set; } = 2;
+        public virtual int carryingcapacity { get; set; } = 10;
+        public virtual int foodcarried { get; set; } = 0;
+        /*
+         * commented cos adding food carryied cos idk what else they carry yet
         public virtual List<int> inventory { get; set; } = new List<int>();
-        
+        */
 
         public virtual List<int> path { get; set; } = new List<int>();
+        // loop through each position in path and move ant there
+
+
+
         public virtual void Move(int direction)
         {
             switch (direction)

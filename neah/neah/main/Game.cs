@@ -75,6 +75,7 @@ namespace neah.main
             {
 
                 inputselector();
+                ProcessAntMovementAndTasks();
 
                 // if queen has 4 food lay eggs 
                 if (queen != null && queen.food == 4)
@@ -85,34 +86,365 @@ namespace neah.main
                 }
 
 
-                Thread.Sleep(100);
+                Thread.Sleep(10);
             }
+        }
+        private void ProcessAntMovementAndTasks()
+        {
+            // 1) Assign queued tasks to the closest available ant using ClosestAnt()
+            // Make a copy so we can safely remove tasks from the queue while iterating.
+            var pending = queue1.tasks.ToList();
+            foreach (var task in pending)
+            {
+                try
+                {
+                    // ClosestAnt will set the ant's Currenttask and clamedtaskid if a free ant exists.
+                    ClosestAnt(task);
+                    // If assignment succeeded, remove the task from the queue.
+                    queue1.removetask(task.id);
+                }
+                catch
+                {
+                    // couldn't assign this task now (no free ants or other error) — leave it in the queue.
+                }
+            }
+
+            // 2) Move ants along their paths and let idle ants wander
+            var ants = GetAllAnts();
+            foreach (var ant in ants)
+            {
+                if (ant.Currenttask != null)
+                {
+                    var task = ant.Currenttask;
+                    var tx = task.targetposition.Item1;
+                    var ty = task.targetposition.Item2;
+
+                    // If this is a dig task and the ant is already adjacent (or on) the target,
+                    // do NOT attempt to pathfind — let the ant perform dig work each tick until finished.
+                    bool isDigAndAdjacent = task.tasktype.Equals("dig", StringComparison.OrdinalIgnoreCase)
+                                            && IsAdjacentOrOn(ant.Position, task.targetposition);
+
+                    if (!isDigAndAdjacent)
+                    {
+                        // Ensure the ant has a path unless it's already in working position (e.g. adjacent for dig)
+                        if (ant.path == null || ant.path.Count == 0)
+                        {
+                            try
+                            {
+                                pathfind(ant); // compute path (may target adjacent traversable cell if needed)
+                            }
+                            catch
+                            {
+                                // can't reach — release the task so others can try
+                                ant.Currenttask = null;
+                                ant.clamedtaskid = -1;
+                                ant.path = null;
+                                continue;
+                            }
+                        }
+                    }
+
+                    // If there is a path, move one step per tick
+                    if (!isDigAndAdjacent && ant.path != null && ant.path.Count > 0)
+                    {
+                        int nextIdx = ant.path[0];
+                        int nextX = nextIdx % GridWidth;
+                        int nextY = nextIdx / GridWidth;
+
+                        // If the next cell became blocked, try to re-path; if that fails, drop the task.
+                        var nextCell = grid.GetCellAtLocation(nextX, nextY);
+                        if (!nextCell.IsTraversable)
+                        {
+                            try
+                            {
+                                pathfind(ant);
+                            }
+                            catch
+                            {
+                                ant.Currenttask = null;
+                                ant.clamedtaskid = -1;
+                                ant.path = null;
+                            }
+                            continue;
+                        }
+
+                        // Move the ant: remove from old cell, add to new cell, update position
+                        var oldPos = ant.Position;
+                        int oldX = oldPos.Item1;
+                        int oldY = oldPos.Item2;
+                        var oldCell = grid.GetCellAtLocation(oldX, oldY);
+                        oldCell.RemoveEntity(ant);
+                        grid.AddEntityToCellLocation(nextX, nextY, ant);
+                        ant.Position = (nextX, nextY);
+
+                        // remove the step we just took
+                        ant.path.RemoveAt(0);
+
+                        // If we've reached the end of the path, attempt to work on the task (may start multi-tick dig)
+                        if (ant.path.Count == 0)
+                        {
+                            PerformTaskWork(ant);
+                        }
+                    }
+                    else
+                    {
+                        // No movement to perform this tick (either because dig-and-adjacent or no path) — attempt work
+                        PerformTaskWork(ant);
+                    }
+                }
+                else
+                {
+                    // Idle ant: let it wander (uses existing antwander implementation)
+                    antwander(ant);
+                }
+            }
+        }
+
+        // Helper: returns true if pos is same cell or cardinal neighbour of target
+        private static bool IsAdjacentOrOn((int, int) pos, (int, int) target)
+        {
+            int dx = Math.Abs(pos.Item1 - target.Item1);
+            int dy = Math.Abs(pos.Item2 - target.Item2);
+            return (dx + dy) <= 1;
+        }
+
+        // Perform one tick of work for the ant's current task.
+        // Keeps the ant assigned for multi-tick tasks (dig) until the task is actually finished.
+        private void PerformTaskWork(Ant ant)
+        {
+            if (ant.Currenttask == null) return;
+
+            var task = ant.Currenttask;
+            var tx = task.targetposition.Item1;
+            var ty = task.targetposition.Item2;
+
+            switch (task.tasktype.ToLowerInvariant())
+            {
+                case "dig":
+                    // Ant must be adjacent or on the target to dig.
+                    if (!IsAdjacentOrOn(ant.Position, task.targetposition))
+                    {
+                        // Not in position: try to pathfind next tick.
+                        try
+                        {
+                            pathfind(ant);
+                        }
+                        catch
+                        {
+                            // can't reach: release task
+                            ant.Currenttask = null;
+                            ant.clamedtaskid = -1;
+                            ant.path = null;
+                        }
+                        return;
+                    }
+
+                    // In position: perform a single dig tick.
+                    var targetCell = grid.GetCellAtLocation(tx, ty);
+                    if (targetCell is Dirt)
+                    {
+                        // call dig which increments digprogress and may convert to Air when done
+                        dig(tx, ty);
+
+                        // After dig call, check if cell is still Dirt (work not finished).
+                        var afterCell = grid.GetCellAtLocation(tx, ty);
+                        if (afterCell is Dirt)
+                        {
+                            // Still digging: keep the ant assigned and prevent it from moving.
+                            ant.path = new List<int>();
+                            return; // keep working next tick
+                        }
+                        else
+                        {
+                            // Finished digging: free the ant/task.
+                            ant.Currenttask = null;
+                            ant.clamedtaskid = -1;
+                            ant.path = null;
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        // Target is no longer dirt (maybe someone else dug it). mark task complete/fail and free ant.
+                        ant.Currenttask = null;
+                        ant.clamedtaskid = -1;
+                        ant.path = null;
+                        return;
+                    }
+
+                case "build":
+                    // require ant to be on or adjacent (modify rule if you want exclusive on-cell builds)
+                    if (!IsAdjacentOrOn(ant.Position, task.targetposition))
+                    {
+                        try
+                        {
+                            pathfind(ant);
+                        }
+                        catch
+                        {
+                            ant.Currenttask = null;
+                            ant.clamedtaskid = -1;
+                            ant.path = null;
+                        }
+                        return;
+                    }
+
+                    try
+                    {
+                        var buildCell = grid.GetCellAtLocation(tx, ty);
+                        if (buildCell.IsTraversable)
+                        {
+                            CreateFoodStore(tx, ty);
+                        }
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+
+                    // build is one-shot here
+                    ant.Currenttask = null;
+                    ant.clamedtaskid = -1;
+                    ant.path = null;
+                    return;
+
+                default:
+                    // Other tasks: if in position, complete; otherwise try to pathfind.
+                    if (!IsAdjacentOrOn(ant.Position, task.targetposition))
+                    {
+                        try
+                        {
+                            pathfind(ant);
+                        }
+                        catch
+                        {
+                            ant.Currenttask = null;
+                            ant.clamedtaskid = -1;
+                            ant.path = null;
+                        }
+                        return;
+                    }
+
+                    // complete generic task
+                    ant.Currenttask = null;
+                    ant.clamedtaskid = -1;
+                    ant.path = null;
+                    return;
+            }
+        }
+
+        private void CompleteAntTask(Ant ant)
+        {
+            // kept for backward compatibility with places that call it;
+            // now simply forward to PerformTaskWork so behaviour is consistent.
+            PerformTaskWork(ant);
+        }
+
+        // Gathers all Ant instances currently in the grid.
+        private List<Ant> GetAllAnts()
+        {
+            List<Ant> ants = new List<Ant>();
+            for (int x = 0; x < grid.width; x++)
+            {
+                for (int y = 0; y < grid.height; y++)
+                {
+                    var cell = grid.GetCellAtLocation(x, y);
+                    foreach (var entity in cell.Entities)
+                    {
+                        if (entity is Ant ant)
+                        {
+                            ants.Add(ant);
+                        }
+                    }
+                }
+            }
+            return ants;
         }
 
         public void AddEntityToGameGrid(int x, int y, Entity entity)
         {
             grid.AddEntityToCellLocation(x, y, entity);
         }
-        
+        public (int, int) UserInputCords()
+        {
+            int X, Y;
+
+            // get x from user with validation
+            while (true)
+            {
+                Console.Write("X cord: ");
+                var sx = Console.ReadLine();
+                if (!int.TryParse(sx, out X))
+                {
+                    Console.WriteLine("Please enter a valid integer for X.");
+                    continue;
+                }
+
+                if (X < 0 || X >= grid.width)
+                {
+                    Console.WriteLine($"X out of range (0 .. {grid.width - 1}). Please enter again.");
+                    continue;
+                }
+
+                break;
+            }
+
+            // get y from user with validation
+            while (true)
+            {
+                Console.Write("Y cord: ");
+                var sy = Console.ReadLine();
+                if (!int.TryParse(sy, out Y))
+                {
+                    Console.WriteLine("Please enter a valid integer for Y.");
+                    continue;
+                }
+
+                if (Y < 0 || Y >= grid.height)
+                {
+                    Console.WriteLine($"Y out of range (0 .. {grid.height - 1}). Please enter again.");
+                    continue;
+                }
+
+                break;
+            }
+
+            return (X, Y);
+        }
+
+
+
         public void inputselector()
         {
-            Console.WriteLine("1 : order the ants to dig \nanything else : end tick ");
+            Console.WriteLine("1 : order the ants to dig \n2: order ants to make a food store \nanything else : end tick ");
             var input = Console.ReadKey(true);
+
             if (input.KeyChar == '1')
             {
-                Console.WriteLine("please enter the x and y position of the thing you want to dig (x cord then enter y cord then entre)");
-                int x = int.Parse(Console.ReadLine());
-                int y = int.Parse(Console.ReadLine());
-                algorithm.Task digtask = new algorithm.Task(queue1.lasttaskid++, "dig", (x, y));
+                Console.WriteLine("please enter the x and y position of the thing you want to dig");
+                (int, int) cords = UserInputCords();
+                algorithm.Task digtask = new algorithm.Task(queue1.lasttaskid++, "dig", (cords.Item1, cords.Item2));
+
+                // enqueue the task so ProcessAntMovementAndTasks will assign it
+                queue1.addtask(digtask);
+                Console.WriteLine($"Queued dig task #{digtask.id} at ({cords.Item1},{cords.Item2})");
+            }
+            else if (input.KeyChar == '2')
+            {
+                Console.WriteLine("please enter the x and y position of the thing you want to add food store ");
+                (int, int) cords = UserInputCords();
+                algorithm.Task buildtask = new algorithm.Task(queue1.lasttaskid++, "build", (cords.Item1, cords.Item2));
+
+                // enqueue the build task
+                queue1.addtask(buildtask);
+                Console.WriteLine($"Queued build task #{buildtask.id} at ({cords.Item1},{cords.Item2})");
             }
             else
             {
                 Console.Clear();
                 grid.PrintGrid();
                 tick++;
-
             }
-
         }
         public void dig(int x, int y)
         {
@@ -136,6 +468,10 @@ namespace neah.main
             }
 
 
+        }
+        public void CreateFoodStore(int x, int y)
+        {
+             FoodStore fs1 = new FoodStore(x+y/x, 'S');
         }
         public void printgrid()
         {
