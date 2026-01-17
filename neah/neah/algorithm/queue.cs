@@ -14,9 +14,9 @@ namespace neah.algorithm
         {
         }
         
-        public List<task> tasks = new List<task>();
+        public List<Task> tasks = new List<Task>();
         public int lasttaskid = 0;
-        public void addtask(task newtask)
+        public void addtask(Task newtask)
         {
             tasks.Add(newtask);
         }
@@ -30,7 +30,7 @@ namespace neah.algorithm
                 }
             }
         }
-        public task getnexttask(Game game, Ant ant)
+        public Task getnexttask(Game game, Ant ant)
         {
             if (tasks.Count == 0)
             {
@@ -42,7 +42,7 @@ namespace neah.algorithm
                 {
                     if (tasks[i].tasktype == "gatherfood")
                     {
-                        task foodtask = tasks[i];
+                        Task foodtask = tasks[i];
                         tasks.RemoveAt(i);
                         ant.clamedtaskid = foodtask.id;
                         return foodtask;
@@ -51,7 +51,7 @@ namespace neah.algorithm
             }
             else
             {
-                task nexttask = tasks[0];
+                Task nexttask = tasks[0];
                 tasks.RemoveAt(0);
                 ant.clamedtaskid = nexttask.id;
                 return nexttask;

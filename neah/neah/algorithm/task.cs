@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace neah.algorithm
 {
-    public class task
+    public class Task
     {
         public int id;
         public string tasktype;
         public (int, int) targetposition;
-        public task(int id, string tasktype, (int, int) targetposition)
+        public Task(int id, string tasktype, (int, int) targetposition)
         {
             this.id = id;
             this.tasktype = tasktype;
