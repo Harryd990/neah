@@ -13,7 +13,7 @@ namespace neah.entetys
             Random random = new Random();
 
             // sets food range between 25 50 100
-            Foodrange = (25, random.Next(50, 101));
+            Foodrange = (25, random.Next(1000, 10000));
             currentAmount = random.Next(Foodrange.Item1, Foodrange.Item2 + 1);
 
             Id = Id;

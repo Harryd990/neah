@@ -38,7 +38,8 @@ namespace neah.main
             for (int i = 0; i <= 3; i++)
             {
                 // adds 4 workers along the first line of air
-                Entity Worker = new Worker(i, 'A');
+                Entity Worker = new Worker(i, 'A'); 
+                
 
 
                 int x = rand.Next(0, grid.width);
@@ -47,6 +48,7 @@ namespace neah.main
 
 
                 AddEntityToGameGrid(x, grid.height / 4 - 1, Worker);
+                
                 lastEntityId++;
                 workercount++;
 
@@ -63,6 +65,35 @@ namespace neah.main
             }
 
         }
+        // add print all tasks in queue for debuging
+        public void PrintAllTasksInQueue()
+        {
+            Console.WriteLine("Current Tasks in Queue:");
+            foreach (var task in queue1.tasks)
+            {
+                Console.WriteLine($"Task ID: {task.id}, Type: {task.tasktype}, Target Position: ({task.targetposition.Item1}, {task.targetposition.Item2})");
+            }
+        }
+        public void UgentHungerCheck() {List<Ant> ants = GetAllAnts();
+            foreach (var ant in ants)
+            {
+                if ((ant.food <= 40 && ant.clamedtaskid == -1) )
+                {
+                    Console.WriteLine( "a ant hungers");
+                    ClosestFoodWtaskadd(ant);
+                }
+                if(ant.food <= 20 && ant.clamedtaskid != -1)
+                {
+                    Console.WriteLine("a ant hungers");
+                    // add current task back to queue
+                    if (ant.Currenttask != null)
+                    {
+                        queue1.addtask(ant.Currenttask);
+                    }
+                    ClosestFoodWtaskadd(ant);
+                }
+            }
+        }
         public void ReplaceCellAtLocation(int x, int y, Cell newCell)
         {
             grid.ReplaceCellAtLocation(x, y, newCell);
@@ -73,6 +104,8 @@ namespace neah.main
             grid.PrintGrid();
             while (running)
             {
+                HungerAnts();
+                PrintAllTasksInQueue();
 
                 inputselector();
                 ProcessAntMovementAndTasks();
@@ -271,6 +304,62 @@ namespace neah.main
                         ant.path = null;
                         return;
                     }
+                case "gatherfood":
+                // require ant to be on the food cell to gather
+                    if (ant.Position != task.targetposition)
+                    {
+                        try
+                        {
+                            pathfind(ant);
+                        }
+                        catch
+                        {
+                            ant.Currenttask = null;
+                            ant.clamedtaskid = -1;
+                            ant.path = null;
+                        }
+                        return;
+                    }
+                    try
+                    {
+                        var foodCell = grid.GetCellAtLocation(tx, ty);
+                        var foodEntity = foodCell.Entities.OfType<Food>().FirstOrDefault();
+                        if (foodEntity != null)
+                        {
+
+                            // ant first eats up to max food if posible then gathers up to max inventory space 
+                            // if no food in food node then remove it from grid
+                            int foodNeeded = ant.maxfood - ant.food;
+                            if (foodNeeded > 0)
+                            {
+                                if(foodEntity.currentAmount <= foodNeeded)
+                                {
+                                    ant.food += foodEntity.currentAmount;
+                                    foodNeeded -= foodEntity.currentAmount;
+                                    foodEntity.currentAmount = 0;
+                                    // remove food entity from grid
+                                    foodCell.RemoveEntity(foodEntity);
+                                }
+                                else
+                                {
+                                    ant.food += foodNeeded;
+                                    foodEntity.currentAmount -= foodNeeded;
+                                    foodNeeded = 0;
+                                }
+                                
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                    // gather is one-shot here
+                    ant.Currenttask = null;
+                    ant.clamedtaskid = -1;
+                    ant.path = null;
+                    return;
+
 
                 case "build":
                     // require ant to be on or adjacent (modify rule if you want exclusive on-cell builds)
@@ -335,8 +424,7 @@ namespace neah.main
 
         private void CompleteAntTask(Ant ant)
         {
-            // kept for backward compatibility with places that call it;
-            // now simply forward to PerformTaskWork so behaviour is consistent.
+            
             PerformTaskWork(ant);
         }
 
@@ -360,6 +448,13 @@ namespace neah.main
             }
             return ants;
         }
+        /*
+         * need to add food tasks for ant 
+         * within the ant if the ant has less then 2 food then it will create a gather food task and add it to itself if it already has a task it should add it back to the queue 
+         * if there is a food store ant should gather from that before gathering from random food on the grid
+         * if there is no more task in queue the ant should gather food from the nearest food source and add it to a food store 
+         * player should also be able to add food tasks manually which will go to the back of the queue (low priority)
+         * */
 
         public void AddEntityToGameGrid(int x, int y, Entity entity)
         {
@@ -416,7 +511,7 @@ namespace neah.main
 
         public void inputselector()
         {
-            Console.WriteLine("1 : order the ants to dig \n2: order ants to make a food store \nanything else : end tick ");
+            Console.WriteLine("1 : order the ants to dig \n2: order ants to make a food store \n3: select a cord to get the info of \nanything else : end tick ");
             var input = Console.ReadKey(true);
 
             if (input.KeyChar == '1')
@@ -439,11 +534,46 @@ namespace neah.main
                 queue1.addtask(buildtask);
                 Console.WriteLine($"Queued build task #{buildtask.id} at ({cords.Item1},{cords.Item2})");
             }
+            else if (input.KeyChar == '3')
+            {
+                Console.WriteLine("please enter the x and y position of the thing you want to get info on ");
+                (int, int) cords = UserInputCords();
+                var cell = grid.GetCellAtLocation(cords.Item1, cords.Item2);
+                Console.WriteLine($"Cell at ({cords.Item1},{cords.Item2}): Type={cell.GetType().Name}, Entities={cell.Entities.Count}");
+                foreach (var entity in cell.Entities)
+                {
+                    Console.WriteLine($" - Entity ID={entity.Id}, Type={entity.GetType().Name}, Symbol={entity.Symbol}");
+                    if (entity is Ant ant)
+                    {
+                        Console.WriteLine($"   - Ant Food={ant.food}, Current Task ID={ant.clamedtaskid}");
+                    }
+                    else if (entity is Food food)
+                    {
+                        Console.WriteLine($"   - Food Amount={food.currentAmount}");
+                    }
+                }
+            }
             else
             {
                 Console.Clear();
                 grid.PrintGrid();
                 tick++;
+            }
+        }
+        public void HungerAnts()
+        {
+            List<Ant> ants = GetAllAnts();
+            foreach (var ant in ants)
+            {
+                ant.food--;
+                if (ant.food <= 0)
+                {
+                    // remove ant from grid
+                    var pos = ant.Position;
+                    var cell = grid.GetCellAtLocation(pos.Item1, pos.Item2);
+                    cell.RemoveEntity(ant);
+                    Console.WriteLine($"An ant has died of hunger at ({pos.Item1},{pos.Item2})");
+                }
             }
         }
         public void dig(int x, int y)
@@ -469,6 +599,7 @@ namespace neah.main
 
 
         }
+        
         public void CreateFoodStore(int x, int y)
         {
              FoodStore fs1 = new FoodStore(x+y/x, 'S');
@@ -542,6 +673,51 @@ namespace neah.main
             else
             {
                 throw new Exception("no ants cn task");
+            }
+        }
+        // make methord to find closes food thing (store or just food) to ant
+        public void ClosestFoodWtaskadd(Ant ant)
+        {
+            List<Food> foods = new List<Food>();
+            for (int x = 0; x < grid.width; x++)
+            {
+                for (int y = 0; y < grid.height; y++)
+                {
+                    var cell = grid.GetCellAtLocation(x, y);
+                    foreach (var entity in cell.Entities)
+                    {
+                        if (entity is Food)
+                        {
+                            Food food = (Food)entity;
+                            foods.Add(food);
+                        }
+                    }
+                }
+            }
+            if (foods.Count == 0)
+            {
+                throw new Exception("no food found");
+            }
+            int closestdistance = int.MaxValue;
+            Food closestfood = null;
+            foreach (var food in foods)
+            {
+                int distance = Math.Abs(ant.Position.Item1 - food.Position.Item1) + Math.Abs(ant.Position.Item2 - food.Position.Item2);
+                if (distance < closestdistance)
+                {
+                    closestdistance = distance;
+                    closestfood = food;
+                }
+            }
+            if (closestfood != null)
+            {
+                algorithm.Task foodtask = new algorithm.Task(queue1.lasttaskid++, "gatherfood", closestfood.Position);
+                ant.Currenttask = foodtask;
+                ant.clamedtaskid = foodtask.id;
+            }
+            else
+            {
+                throw new Exception("no food found");
             }
         }
         public void pathfind(Ant ant)
@@ -697,4 +873,5 @@ namespace neah.main
 
 
     }
+
 }

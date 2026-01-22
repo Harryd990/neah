@@ -23,10 +23,11 @@ namespace neah.entetys
         public override char Species { get; set; } = 'N';
         public override string Symbol { get; set; } = "[N]";
 
-        public virtual int food { get; set; } = 0;
-        public virtual int maxfood { get; set; } = 5;
+        // added food to start at max food could change but idk
+        public virtual int food { get; set; } = 20;
+        public virtual int maxfood { get; set; } = 100;
 
-        public virtual int carryingcapacity { get; set; } = 10;
+        public virtual int carryingcapacity { get; set; } = 1000;
         public virtual int foodcarried { get; set; } = 0;
         /*
          * commented cos adding food carryied cos idk what else they carry yet
@@ -35,9 +36,50 @@ namespace neah.entetys
 
         public virtual List<int> path { get; set; } = new List<int>();
         // loop through each position in path and move ant there
+        
+        // add it so ants loose food after every tick 
 
 
 
+        // methord for ants to get food if they have less then 20 food (ungent food gather) 
+        public virtual void GatherFood(int amount)
+        {
+            food += amount;
+            if (food > maxfood)
+            {
+                food = maxfood;
+            }
+        }
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /*
         public virtual void Move(int direction)
         {
             switch (direction)
@@ -58,7 +100,8 @@ namespace neah.entetys
                     throw new InvalidOperationException("Invalid direction");
             }
         }
-        
+        */
+
 
 
 
