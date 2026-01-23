@@ -11,6 +11,14 @@ using System.Threading.Tasks;
 
 namespace neah.main
 {
+    /*
+     * to do:
+     * make so ants add food to food stores
+     * make so food stores can onlu be made undegroud
+     * add farms (only underground) that slowly generate food over time
+     * queen only gives birth underground
+     * move all starting yap into game initialize ( cos looks cooler)
+     * */
     public class Game
     {
         private Grid grid;
