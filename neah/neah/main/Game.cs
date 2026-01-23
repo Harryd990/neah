@@ -106,6 +106,7 @@ namespace neah.main
             {
                 HungerAnts();
                 PrintAllTasksInQueue();
+                UgentHungerCheck();
 
                 inputselector();
                 ProcessAntMovementAndTasks();
@@ -675,10 +676,12 @@ namespace neah.main
                 throw new Exception("no ants cn task");
             }
         }
-        // make methord to find closes food thing (store or just food) to ant
+        // methord to find closes food thing (store or just food) to ant
         public void ClosestFoodWtaskadd(Ant ant)
         {
             List<Food> foods = new List<Food>();
+            // add to all food in grid (food and food stores)
+            
             for (int x = 0; x < grid.width; x++)
             {
                 for (int y = 0; y < grid.height; y++)
@@ -838,7 +841,7 @@ namespace neah.main
                     var vcell = grid.GetCellAtLocation(vx, vy);
                     if (!vcell.IsTraversable) continue;
 
-                    int alt = dist[u] + 1; // uniform weight
+                    int alt = dist[u] + 1; 
                     if (alt < dist[v])
                     {
                         dist[v] = alt;
