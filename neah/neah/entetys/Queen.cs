@@ -17,6 +17,8 @@ namespace neah.entetys
         public override char Species { get; set; } = 'Q';
         public override string Symbol { get; set; } = "[Q]";
 
+        public int EggGracePeriod { get; set; } = 0;
+
         // makes new egg at queen position
         public void LayEggs(Game game)
         {

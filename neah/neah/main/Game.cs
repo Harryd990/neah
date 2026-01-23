@@ -111,18 +111,35 @@ namespace neah.main
 
                 inputselector();
                 ProcessAntMovementAndTasks();
+                
+                GeneralTickUpdates();
+                                
 
-                // if queen has 4 food lay eggs 
-                if (queen != null && queen.food >= 60)
+
+
+
+
+
+                // if queen has  food lay eggs 
+                // add stuff so queen has grace period on egg laying 
+                // mb later add queen preference to lay eggs underground cos currently spams eggs on the food source and guzzels it all 
+                if (queen != null && queen.food >= 60 && queen.EggGracePeriod == 0)
                 {
                     queen.food = queen.food-30;
                     queen.LayEggs(this);
+                    // add stuff here for queen moving underground / hiding to lay eggs 
+                    queen.EggGracePeriod = 30;
 
                 }
 
 
                 Thread.Sleep(10);
             }
+        }
+        public void GeneralTickUpdates()
+        {
+            queen.EggGracePeriod--;
+            ProcessEggHatching();
         }
         // egg hatch add up every tick untill = hatch time then add worker to grid at egg pos and remove egg from grid
         public void ProcessEggHatching()
