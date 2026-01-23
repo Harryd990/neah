@@ -23,7 +23,7 @@ namespace neah.entetys
             int y = Position.Item1;
             int x = Position.Item2;
 
-            var egg = new Worker(game.lastEntityId++, 'A');
+            var egg = new Egg(game.lastEntityId++, 'E');
             game.AddEntityToGameGrid(x, y, egg);
 
         }

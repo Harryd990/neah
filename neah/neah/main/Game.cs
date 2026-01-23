@@ -82,7 +82,8 @@ namespace neah.main
                     Console.WriteLine( "a ant hungers");
                     ClosestFoodWtaskadd(ant);
                 }
-                if(ant.food <= 20 && ant.clamedtaskid != -1)
+                
+                if(ant.food <= 20 && ant.clamedtaskid != -1 && ant.Currenttask.tasktype != "gatherfood")
                 {
                     Console.WriteLine("a ant hungers");
                     // add current task back to queue
@@ -112,15 +113,37 @@ namespace neah.main
                 ProcessAntMovementAndTasks();
 
                 // if queen has 4 food lay eggs 
-                if (queen != null && queen.food == 4)
+                if (queen != null && queen.food >= 60)
                 {
-                    queen.food = 0;
+                    queen.food = queen.food-30;
                     queen.LayEggs(this);
 
                 }
 
 
                 Thread.Sleep(10);
+            }
+        }
+        // egg hatch add up every tick untill = hatch time then add worker to grid at egg pos and remove egg from grid
+        public void ProcessEggHatching()
+        {
+            for (int x = 0; x < grid.width; x++)
+            {
+                for (int y = 0; y < grid.height; y++)
+                {
+                    var cell = grid.GetCellAtLocation(x, y);
+                    var eggs = cell.Entities.OfType<Egg>().ToList();
+                    foreach (var egg in eggs)
+                    {
+                        egg.hatchTime--;
+                        if (egg.hatchTime <= 0)
+                        {
+                            egg.HatchEgg(this);
+                            cell.RemoveEntity(egg);
+                            Console.WriteLine($"An egg has hatched at ({x},{y})");
+                        }
+                    }
+                }
             }
         }
         private void ProcessAntMovementAndTasks()
