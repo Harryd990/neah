@@ -27,6 +27,7 @@ namespace neah.entetys
             {
                 foodcontained += ant.foodcarried;
         }
+        
         public void removefood(Ant ant)
             {
                 if (foodcontained - ant.foodcarried < 0)
@@ -38,6 +39,7 @@ namespace neah.entetys
                     foodcontained -= ant.foodcarried;
                 }
         }
+        // add stuff to make it so food stores can only be made underground + farms too 
 
 
     }

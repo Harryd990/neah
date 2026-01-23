@@ -123,8 +123,9 @@ namespace neah.main
                 // if queen has  food lay eggs 
                 // add stuff so queen has grace period on egg laying 
                 // mb later add queen preference to lay eggs underground cos currently spams eggs on the food source and guzzels it all 
-                if (queen != null && queen.food >= 60 && queen.EggGracePeriod == 0)
+                if (queen != null && queen.food >= 60 && queen.EggGracePeriod <= 0)
                 {
+                    //throw new Exception("Queen is laying eggs");
                     queen.food = queen.food-30;
                     queen.LayEggs(this);
                     // add stuff here for queen moving underground / hiding to lay eggs 
