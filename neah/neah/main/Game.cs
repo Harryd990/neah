@@ -641,11 +641,22 @@ namespace neah.main
 
 
         }
-        
         public void CreateFoodStore(int x, int y)
         {
-             FoodStore fs1 = new FoodStore(x+y/x, 'S');
+            if (!grid.IsInGridRange(x, y))
+                throw new ArgumentOutOfRangeException(nameof(x), "Position out of grid range.");
+
+            
+            var fs = new FoodStore(++lastEntityId, 'S');
+            AddEntityToGameGrid(x, y, fs);
+
+            
+            fs.Position = (x, y);
+
+
         }
+
+        
         public void printgrid()
         {
             grid.PrintGrid();
