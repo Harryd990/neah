@@ -120,7 +120,7 @@ namespace neah.main
             while (running)
             {
                 HungerAnts();
-                PrintAllTasksInQueue();
+                // PrintAllTasksInQueue(); use for debuging
                 UgentHungerCheck();
 
                 inputselector();
@@ -300,7 +300,7 @@ namespace neah.main
                         grid.AddEntityToCellLocation(nextX, nextY, ant);
                         ant.Position = (nextX, nextY);
 
-                        // remove the step we just took
+                        // remove the step atn took
                         ant.path.RemoveAt(0);
 
                         // If we've reached the end of the path, attempt to work on the task (may start multi-tick dig)
@@ -317,7 +317,7 @@ namespace neah.main
                 }
                 else
                 {
-                    // Idle ant: let it wander (uses existing antwander implementation)
+                    // idle ant
                     antwander(ant);
                 }
             }
@@ -806,6 +806,10 @@ namespace neah.main
                     {
                         Console.WriteLine($"   - Food Amount={food.currentAmount}");
                     }
+                    else if (entity is FoodStore store)
+                    {
+                        Console.WriteLine($"   - FoodStore Contained={store.foodcontained}, Capacity={store.capacity}");
+                    }
                 }
             }
             else
@@ -945,8 +949,9 @@ namespace neah.main
         // methord to find closes food thing (store or just food) to ant
         public void ClosestFoodWtaskadd(Ant ant)
         {
-            List<Food> foods = new List<Food>();
-            // add to all food in grid (food and food stores)
+            List<Food> foodnat = new List<Food>();
+            List<FoodStore> foodStores = new List<FoodStore>();
+            // need to add stuff so it check food and food stores
             
             for (int x = 0; x < grid.width; x++)
             {
@@ -958,18 +963,18 @@ namespace neah.main
                         if (entity is Food)
                         {
                             Food food = (Food)entity;
-                            foods.Add(food);
+                            foodnat.Add(food);
                         }
                     }
                 }
             }
-            if (foods.Count == 0)
+            if (foodnat.Count == 0)
             {
                 throw new Exception("no food found");
             }
             int closestdistance = int.MaxValue;
             Food closestfood = null;
-            foreach (var food in foods)
+            foreach (var food in foodnat)
             {
                 int distance = Math.Abs(ant.Position.Item1 - food.Position.Item1) + Math.Abs(ant.Position.Item2 - food.Position.Item2);
                 if (distance < closestdistance)
