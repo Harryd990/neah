@@ -19,6 +19,7 @@ namespace neah.main
      * queen only gives birth underground
      * move all starting yap into game initialize ( cos looks cooler)
      * add auto ticking and speed dial 
+     * ss
      * add saving to text file (easy marks)
      * */
     /*
