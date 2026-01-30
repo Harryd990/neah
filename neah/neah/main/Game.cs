@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Security.AccessControl;
 using System.Text;
 using System.Threading.Tasks;
+using neah.entetys;
 
 namespace neah.main
 {
@@ -188,6 +189,7 @@ namespace neah.main
             {
                 store.addfood(ant);
                 ant.foodcarried = 0;
+                Console.WriteLine("they did the thing");
                 return;
             }
 
@@ -230,7 +232,7 @@ namespace neah.main
                 }
                 catch
                 {
-                    // couldn't assign this task now (no free ants or other error) — leave it in the queue.
+                    // canney assign task now (error or ants working hard)
                 }
             }
 
@@ -338,23 +340,18 @@ namespace neah.main
         public void FillinvWfood(Ant ant)
         {
             var cell = grid.GetCellAtLocation(ant.Position.Item1, ant.Position.Item2);
-            var foods = cell.Entities.OfType<Food>().ToList();
-            foreach (var food in foods)
+            var foodSources = cell.Entities.OfType<IFoodSource>().ToList();
+            foreach (var foodSource in foodSources)
             {
                 int spaceleft = ant.carryingcapacity - ant.foodcarried;
                 if (spaceleft > 0)
                 {
-                    if (food.currentAmount <= spaceleft)
+                    int taken = foodSource.TakeFood(spaceleft);
+                    ant.foodcarried += taken;
+                    // Optionally, remove the food entity if depleted
+                    if (foodSource.AvailableFood == 0 && foodSource is Entity entity)
                     {
-                        ant.foodcarried += food.currentAmount;
-                        food.currentAmount = 0;
-                        // remove food entity from grid
-                        cell.RemoveEntity(food);
-                    }
-                    else
-                    {
-                        ant.foodcarried += spaceleft;
-                        food.currentAmount -= spaceleft;
+                        cell.RemoveEntity(entity);
                     }
                 }
                 return;
@@ -422,7 +419,7 @@ namespace neah.main
                         return;
                     }
                 case "gatherfood":
-                // require ant to be on the food cell to gather
+                    // require ant to be on the food cell to gather
                     if (ant.Position != task.targetposition)
                     {
                         try
@@ -440,30 +437,19 @@ namespace neah.main
                     try
                     {
                         var foodCell = grid.GetCellAtLocation(tx, ty);
-                        var foodEntity = foodCell.Entities.OfType<Food>().FirstOrDefault();
-                        if (foodEntity != null)
+                        var foodSource = foodCell.Entities.OfType<IFoodSource>().FirstOrDefault();
+                        if (foodSource != null)
                         {
-
-                            // ant first eats up to max food if posible then gathers up to max inventory space 
-                            // if no food in food node then remove it from grid
                             int foodNeeded = ant.maxfood - ant.food;
                             if (foodNeeded > 0)
                             {
-                                if(foodEntity.currentAmount <= foodNeeded)
+                                int taken = foodSource.TakeFood(foodNeeded);
+                                ant.food += taken;
+                                // Optionally, remove the food entity if depleted
+                                if (foodSource.AvailableFood == 0 && foodSource is Entity entity)
                                 {
-                                    ant.food += foodEntity.currentAmount;
-                                    foodNeeded -= foodEntity.currentAmount;
-                                    foodEntity.currentAmount = 0;
-                                    // remove food entity from grid
-                                    foodCell.RemoveEntity(foodEntity);
+                                    foodCell.RemoveEntity(entity);
                                 }
-                                else
-                                {
-                                    ant.food += foodNeeded;
-                                    foodEntity.currentAmount -= foodNeeded;
-                                    foodNeeded = 0;
-                                }
-                                
                             }
                         }
                     }
@@ -500,10 +486,8 @@ namespace neah.main
                                 var c = grid.GetCellAtLocation(x, y);
                                 foreach (var e in c.Entities)
                                 {
-                                    if (e is Food f)
+                                    if (e is Food f && f.AvailableFood > 0)
                                     {
-                                        // skip if this entity has 0 amount
-                                        if (f.currentAmount <= 0) continue;
                                         int dist = Math.Abs(ant.Position.Item1 - x) + Math.Abs(ant.Position.Item2 - y);
                                         if (dist < bestDist)
                                         {
@@ -951,10 +935,8 @@ namespace neah.main
         // methord to find closes food thing (store or just food) to ant
         public void ClosestFoodWtaskadd(Ant ant)
         {
-            List<Food> foodnat = new List<Food>();
-            List<FoodStore> foodStores = new List<FoodStore>();
-            // need to add stuff so it check food and food stores
-            
+            List<IFoodSource> foodsources = new List<IFoodSource>();
+
             for (int x = 0; x < grid.width; x++)
             {
                 for (int y = 0; y < grid.height; y++)
@@ -962,21 +944,41 @@ namespace neah.main
                     var cell = grid.GetCellAtLocation(x, y);
                     foreach (var entity in cell.Entities)
                     {
-                        if (entity is Food)
+                        if (entity is IFoodSource foodSource && foodSource.AvailableFood > 0)
                         {
-                            Food food = (Food)entity;
-                            foodnat.Add(food);
+                            foodsources.Add(foodSource);
                         }
                     }
                 }
             }
-            if (foodnat.Count == 0)
+            if (foodsources.Count == 0)
             {
-                throw new Exception("no food found");
+                // throw new Exception("no food found");
+                Console.WriteLine("all nat food gone give check " +
+                    "" +
+                    "" +
+                    "" +
+                    "" +
+                    "" +
+                    "" +
+                    "" +
+                    "" +
+                    "" +
+                    "" +
+                    "" +
+                    "" +
+                    "" +
+                    "" +
+                    "" +
+                    "");
+
             }
+
+
+
             int closestdistance = int.MaxValue;
-            Food closestfood = null;
-            foreach (var food in foodnat)
+            IFoodSource closestfood = null;
+            foreach (var food in foodsources)
             {
                 int distance = Math.Abs(ant.Position.Item1 - food.Position.Item1) + Math.Abs(ant.Position.Item2 - food.Position.Item2);
                 if (distance < closestdistance)
@@ -993,7 +995,8 @@ namespace neah.main
             }
             else
             {
-                throw new Exception("no food found");
+                Console.WriteLine("no food found");
+                //throw new Exception("no food found");
             }
         }
         public void pathfind(Ant ant)

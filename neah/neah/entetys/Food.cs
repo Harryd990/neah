@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using neah.entetys;
 
 namespace neah.entetys
 {
-    internal class Food : Entity
+    internal class Food : Entity, IFoodSource
     {
         public Food(int id, int x, int y) : base(id, 'F')
         {
@@ -18,13 +19,23 @@ namespace neah.entetys
 
             Id = Id;
         }
-        
+        public int currentAmount;
+        public override (int, int) Position { get; set; }
+        public int AvailableFood => currentAmount;
+
+        public int TakeFood(int amount)
+        {
+            int taken = Math.Min(currentAmount, amount);
+            currentAmount -= taken;
+            return taken;
+        }
+
         public override int Id { get; set; }
         public override char Species { get; set; } = 'F';
         public override string Symbol { get; set; } = "[F]";
 
         public (int, int) Foodrange { get; set; }
-        public int currentAmount { get; set; }
+        
     }
 
     

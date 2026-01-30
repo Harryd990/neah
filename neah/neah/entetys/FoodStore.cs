@@ -3,30 +3,45 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using neah.entetys;
 
 namespace neah.entetys
 {
    
-        internal class FoodStore : Entity
-        {
+        internal class FoodStore : Entity, IFoodSource
+    {
             public FoodStore(int id, char Species) : base(id, Species)
             {
 
             }
-            public override int Id { get; set; }
+        public int foodcontained;
+        public int capacity;
+        public override (int, int) Position { get; set; }
+        public int AvailableFood => foodcontained;
+
+        public int TakeFood(int amount)
+        {
+            int taken = Math.Min(foodcontained, amount);
+            foodcontained -= taken;
+            return taken;
+        }
+
+        public override int Id { get; set; }
         // amount of food stored 
-            public int foodcontained { get; set; } = 0;
-            public int capacity { get; set; } = 10000;
+            
 
         // symbol and species for this entity
         public override char Species { get; set; } = 'S';
             public override string Symbol { get; set; } = "[S]";
 
-        public override (int, int) Position { get; set; }
+        
 
         public void addfood(Ant ant)
-            {
-                foodcontained += ant.foodcarried;
+        {
+            int toAdd = Math.Min(ant.foodcarried, capacity - foodcontained);
+            foodcontained += toAdd;
+            ant.foodcarried -= toAdd;
+            Console.WriteLine($"FoodStore at {Position} received {toAdd} food. Now: {foodcontained}/{capacity}");
         }
         
         public void removefood(Ant ant)
