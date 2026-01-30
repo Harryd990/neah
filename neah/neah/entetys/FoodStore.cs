@@ -16,9 +16,10 @@ namespace neah.entetys
             public override int Id { get; set; }
         // amount of food stored 
             public int foodcontained { get; set; } = 0;
+            public int capacity { get; set; } = 10000;
 
-            // symbol and species for this entity
-            public override char Species { get; set; } = 'S';
+        // symbol and species for this entity
+        public override char Species { get; set; } = 'S';
             public override string Symbol { get; set; } = "[S]";
 
         public override (int, int) Position { get; set; }

@@ -36,8 +36,14 @@ namespace neah.entetys
 
         public virtual List<int> path { get; set; } = new List<int>();
         // loop through each position in path and move ant there
-        
+
         // add it so ants loose food after every tick 
+        // --- Added for foodstoregather two-stage task ---
+        // The food store position we ultimately must deliver to (set when task assigned)
+        public (int, int)? FoodStoreTarget { get; set; } = null;
+
+        // True while the ant is in the phase "go to food source and fill inventory"
+        public bool FillingFromSource { get; set; } = false;
 
 
 

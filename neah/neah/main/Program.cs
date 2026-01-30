@@ -13,7 +13,7 @@ internal class Program
 
         Console.ReadLine();
         Game game = new Game(width, height);
-        game.Initialize_Game();
+        game.Initialise_Game();
         
 
 
