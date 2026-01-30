@@ -21,9 +21,7 @@ namespace neah.main
      * add auto ticking and speed dial 
      * add saving to text file (easy marks)
      * */
-    /*
-     * adds add food to food stores before wander task
-     * */
+    
     public class Game
     {
         private Grid grid;
@@ -421,7 +419,7 @@ namespace neah.main
                         return;
                     }
                 case "gatherfood":
-                // require ant to be on the food cell to gather
+                    // require ant to be on the food cell or food store to gather
                     if (ant.Position != task.targetposition)
                     {
                         try
@@ -439,16 +437,33 @@ namespace neah.main
                     try
                     {
                         var foodCell = grid.GetCellAtLocation(tx, ty);
-                        var foodEntity = foodCell.Entities.OfType<Food>().FirstOrDefault();
-                        if (foodEntity != null)
-                        {
 
-                            // ant first eats up to max food if posible then gathers up to max inventory space 
-                            // if no food in food node then remove it from grid
+                        // Try FoodStore first
+                        var foodStore = foodCell.Entities.OfType<FoodStore>().FirstOrDefault(store => store.foodcontained > 0);
+                        if (foodStore != null)
+                        {
                             int foodNeeded = ant.maxfood - ant.food;
                             if (foodNeeded > 0)
                             {
-                                if(foodEntity.currentAmount <= foodNeeded)
+                                int taken = Math.Min(foodNeeded, foodStore.foodcontained);
+                                foodStore.foodcontained -= taken;
+                                ant.food += taken;
+                            }
+                            // gather is one-shot here
+                            ant.Currenttask = null;
+                            ant.clamedtaskid = -1;
+                            ant.path = null;
+                            return;
+                        }
+
+                        // Otherwise, try Food entity
+                        var foodEntity = foodCell.Entities.OfType<Food>().FirstOrDefault();
+                        if (foodEntity != null)
+                        {
+                            int foodNeeded = ant.maxfood - ant.food;
+                            if (foodNeeded > 0)
+                            {
+                                if (foodEntity.currentAmount <= foodNeeded)
                                 {
                                     ant.food += foodEntity.currentAmount;
                                     foodNeeded -= foodEntity.currentAmount;
@@ -462,7 +477,6 @@ namespace neah.main
                                     foodEntity.currentAmount -= foodNeeded;
                                     foodNeeded = 0;
                                 }
-                                
                             }
                         }
                     }
@@ -950,10 +964,8 @@ namespace neah.main
         // methord to find closes food thing (store or just food) to ant
         public void ClosestFoodWtaskadd(Ant ant)
         {
-            List<Food> foodnat = new List<Food>();
+            // 1. Try to find the closest FoodStore with food
             List<FoodStore> foodStores = new List<FoodStore>();
-            // need to add stuff so it check food and food stores
-            
             for (int x = 0; x < grid.width; x++)
             {
                 for (int y = 0; y < grid.height; y++)
@@ -961,26 +973,65 @@ namespace neah.main
                     var cell = grid.GetCellAtLocation(x, y);
                     foreach (var entity in cell.Entities)
                     {
-                        if (entity is Food)
+                        if (entity is FoodStore store && store.foodcontained > 0)
                         {
-                            Food food = (Food)entity;
+                            foodStores.Add(store);
+                        }
+                    }
+                }
+            }
+            if (foodStores.Count > 0)
+            {
+                int closestdistance = int.MaxValue;
+                FoodStore closestStore = null;
+                foreach (var store in foodStores)
+                {
+                    int distance = Math.Abs(ant.Position.Item1 - store.Position.Item1) + Math.Abs(ant.Position.Item2 - store.Position.Item2);
+                    if (distance < closestdistance)
+                    {
+                        closestdistance = distance;
+                        closestStore = store;
+                    }
+                }
+                if (closestStore != null)
+                {
+                    algorithm.Task foodtask = new algorithm.Task(queue1.lasttaskid++, "gatherfood", closestStore.Position);
+                    ant.Currenttask = foodtask;
+                    ant.clamedtaskid = foodtask.id;
+                    return;
+                }
+            }
+
+            // 2. If no FoodStore with food, fall back to closest Food entity
+            List<Food> foodnat = new List<Food>();
+            for (int x = 0; x < grid.width; x++)
+            {
+                for (int y = 0; y < grid.height; y++)
+                {
+                    var cell = grid.GetCellAtLocation(x, y);
+                    foreach (var entity in cell.Entities)
+                    {
+                        if (entity is Food food)
+                        {
                             foodnat.Add(food);
                         }
                     }
                 }
             }
+            /*
             if (foodnat.Count == 0)
             {
                 throw new Exception("no food found");
             }
-            int closestdistance = int.MaxValue;
+            */
+            int closestdistance2 = int.MaxValue;
             Food closestfood = null;
             foreach (var food in foodnat)
             {
                 int distance = Math.Abs(ant.Position.Item1 - food.Position.Item1) + Math.Abs(ant.Position.Item2 - food.Position.Item2);
-                if (distance < closestdistance)
+                if (distance < closestdistance2)
                 {
-                    closestdistance = distance;
+                    closestdistance2 = distance;
                     closestfood = food;
                 }
             }
