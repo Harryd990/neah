@@ -14,6 +14,7 @@ namespace neah.entetys
 
             }
             public override int Id { get; set; }
+
         // amount of food stored 
             public int foodcontained { get; set; } = 0;
             public int capacity { get; set; } = 10000;
