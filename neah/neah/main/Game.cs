@@ -2,6 +2,7 @@
 using neah.entetys;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
@@ -13,7 +14,9 @@ namespace neah.main
 {
     /*
      * to do:
-     * 
+     * multiple ants are going to same farm fix 
+     * change build task so it can build farms too (only underground)
+     * add stuff so ants work in farms if there is no other jobs 
      * make so food stores can onlu be made undegroud
      * add farms (only underground) that slowly generate food over time
      * queen only gives birth underground
@@ -21,7 +24,7 @@ namespace neah.main
      * add auto ticking and speed dial 
      * add saving to text file (easy marks)
      * */
-    
+
     public class Game
     {
         private Grid grid;
@@ -155,7 +158,29 @@ namespace neah.main
             queen.EggGracePeriod--;
             ProcessEggHatching();
             Check4EmptyStores();
+            UpdateFarms();
             // check if there is a food store that isnt full if so add a food store fill task to quue
+        }
+        public void UpdateFarms()
+        {
+            // check through grid for farms and call their update method
+            for(int x = 0; x < grid.width; x++)
+            {
+                for(int y = 0; y < grid.height; y++)
+                {
+                    var cell = grid.GetCellAtLocation(x, y);
+                    var farms = cell.Entities.OfType<farm>().ToList();
+                    foreach(var farm in farms)
+                    {
+                        farm.TickFarm();
+                        if (farm.antWorking == false)
+                        {
+                            algorithm.Task foodstoretask = new algorithm.Task(queue1.lasttaskid++, "farmwork", (x, y));
+                            queue1.addtask(foodstoretask);
+                        }
+                    }
+                }
+            }
         }
         public void Check4EmptyStores()
         {
@@ -368,17 +393,11 @@ namespace neah.main
             switch (task.tasktype.ToLowerInvariant())
             {
                 case "dig":
-                    // Ant must be adjacent or on the target to dig.
                     if (!IsAdjacentOrOn(ant.Position, task.targetposition))
                     {
-                        // Not in position: try to pathfind next tick.
-                        try
-                        {
-                            pathfind(ant);
-                        }
+                        try { pathfind(ant); }
                         catch
                         {
-                            // can't reach: release task
                             ant.Currenttask = null;
                             ant.clamedtaskid = -1;
                             ant.path = null;
@@ -386,46 +405,31 @@ namespace neah.main
                         return;
                     }
 
-                    // In position: perform a single dig tick.
                     var targetCell = grid.GetCellAtLocation(tx, ty);
                     if (targetCell is Dirt)
                     {
-                        // call dig which increments digprogress and may convert to Air when done
                         dig(tx, ty);
-
-                        // After dig call, check if cell is still Dirt (work not finished).
                         var afterCell = grid.GetCellAtLocation(tx, ty);
                         if (afterCell is Dirt)
                         {
-                            // Still digging: keep the ant assigned and prevent it from moving.
                             ant.path = new List<int>();
-                            return; // keep working next tick
-                        }
-                        else
-                        {
-                            // Finished digging: free the ant/task.
-                            ant.Currenttask = null;
-                            ant.clamedtaskid = -1;
-                            ant.path = null;
                             return;
                         }
-                    }
-                    else
-                    {
-                        // Target is no longer dirt (maybe someone else dug it). mark task complete/fail and free ant.
                         ant.Currenttask = null;
                         ant.clamedtaskid = -1;
                         ant.path = null;
                         return;
                     }
+
+                    ant.Currenttask = null;
+                    ant.clamedtaskid = -1;
+                    ant.path = null;
+                    return;
+
                 case "gatherfood":
-                    // require ant to be on the food cell or food store to gather
                     if (ant.Position != task.targetposition)
                     {
-                        try
-                        {
-                            pathfind(ant);
-                        }
+                        try { pathfind(ant); }
                         catch
                         {
                             ant.Currenttask = null;
@@ -434,12 +438,12 @@ namespace neah.main
                         }
                         return;
                     }
+
                     try
                     {
                         var foodCell = grid.GetCellAtLocation(tx, ty);
 
-                        // Try FoodStore first
-                        var foodStore = foodCell.Entities.OfType<FoodStore>().FirstOrDefault(store => store.foodcontained > 0);
+                        var foodStore = foodCell.Entities.OfType<FoodStore>().FirstOrDefault(s => s.foodcontained > 0);
                         if (foodStore != null)
                         {
                             int foodNeeded = ant.maxfood - ant.food;
@@ -449,14 +453,12 @@ namespace neah.main
                                 foodStore.foodcontained -= taken;
                                 ant.food += taken;
                             }
-                            // gather is one-shot here
                             ant.Currenttask = null;
                             ant.clamedtaskid = -1;
                             ant.path = null;
                             return;
                         }
 
-                        // Otherwise, try Food entity
                         var foodEntity = foodCell.Entities.OfType<Food>().FirstOrDefault();
                         if (foodEntity != null)
                         {
@@ -466,16 +468,13 @@ namespace neah.main
                                 if (foodEntity.currentAmount <= foodNeeded)
                                 {
                                     ant.food += foodEntity.currentAmount;
-                                    foodNeeded -= foodEntity.currentAmount;
                                     foodEntity.currentAmount = 0;
-                                    // remove food entity from grid
                                     foodCell.RemoveEntity(foodEntity);
                                 }
                                 else
                                 {
                                     ant.food += foodNeeded;
                                     foodEntity.currentAmount -= foodNeeded;
-                                    foodNeeded = 0;
                                 }
                             }
                         }
@@ -484,28 +483,25 @@ namespace neah.main
                     {
                         // ignore
                     }
-                    // gather is one-shot here
+
                     ant.Currenttask = null;
                     ant.clamedtaskid = -1;
                     ant.path = null;
                     return;
+
                 case "foodstoregather":
-                    // Two stage task:
-                    // - stage A: go to nearest raw food source (Food entity, not FoodStore) and fill inventory
-                    // - stage B: carry inventory to the original food store target and deposit
-
-                    // Ensure we remember the store target
+                    // remember the store target
                     if (ant.FoodStoreTarget == null)
-                    {
                         ant.FoodStoreTarget = task.targetposition;
-                    }
 
-                    // If currently filling from source phase is not started, start it by targeting nearest raw food
+                    // Phase 1: find & go fill from nearest raw source (food or farm)
                     if (!ant.FillingFromSource && ant.foodcarried < ant.carryingcapacity)
                     {
-                        // find nearest Food (exclude FoodStore)
                         Food closestFood = null;
-                        int bestDist = int.MaxValue;
+                        farm closestFarm = null;
+                        int bestFoodDist = int.MaxValue;
+                        int bestFarmDist = int.MaxValue;
+
                         for (int x = 0; x < grid.width; x++)
                         {
                             for (int y = 0; y < grid.height; y++)
@@ -513,24 +509,22 @@ namespace neah.main
                                 var c = grid.GetCellAtLocation(x, y);
                                 foreach (var e in c.Entities)
                                 {
-                                    if (e is Food f)
+                                    if (e is Food f && f.currentAmount > 0)
                                     {
-                                        // skip if this entity has 0 amount
-                                        if (f.currentAmount <= 0) continue;
-                                        int dist = Math.Abs(ant.Position.Item1 - x) + Math.Abs(ant.Position.Item2 - y);
-                                        if (dist < bestDist)
-                                        {
-                                            bestDist = dist;
-                                            closestFood = f;
-                                        }
+                                        int d = Math.Abs(ant.Position.Item1 - x) + Math.Abs(ant.Position.Item2 - y);
+                                        if (d < bestFoodDist) { bestFoodDist = d; closestFood = f; }
+                                    }
+                                    else if (e is farm fm && fm.FoodContained > 0)
+                                    {
+                                        int d = Math.Abs(ant.Position.Item1 - x) + Math.Abs(ant.Position.Item2 - y);
+                                        if (d < bestFarmDist) { bestFarmDist = d; closestFarm = fm; }
                                     }
                                 }
                             }
                         }
 
-                        if (closestFood == null)
+                        if (closestFood == null && closestFarm == null)
                         {
-                            // no raw food available: release task so others might handle/store re-queue
                             ant.Currenttask = null;
                             ant.clamedtaskid = -1;
                             ant.path = null;
@@ -539,25 +533,25 @@ namespace neah.main
                             return;
                         }
 
-                        // target the food source first
-                        ant.Currenttask.targetposition = closestFood.Position;
+                        if (closestFarm != null && (closestFood == null || bestFarmDist < bestFoodDist))
+                            ant.Currenttask.targetposition = closestFarm.Position;
+                        else if (closestFood != null)
+                            ant.Currenttask.targetposition = closestFood.Position;
+
                         ant.FillingFromSource = true;
-                        ant.path = null; // force path recompute next tick
-                        try { pathfind(ant); }
-                        catch { /* path may be computed next tick */ }
+                        ant.path = null;
+                        try { pathfind(ant); } catch { }
                         return;
                     }
 
-                    // If filling from source phase active
+                    // Phase 2: move to source and fill
                     if (ant.FillingFromSource)
                     {
-                        // Not at food source yet -> pathfind / move
                         if (ant.Position != ant.Currenttask.targetposition)
                         {
                             try { pathfind(ant); }
                             catch
                             {
-                                // can't reach food, abort this gather-to-store task
                                 ant.Currenttask = null;
                                 ant.clamedtaskid = -1;
                                 ant.path = null;
@@ -567,30 +561,22 @@ namespace neah.main
                             return;
                         }
 
-                        // At food source: fill inventory (uses existing helper)
                         FillinvWfood(ant);
-
-                        // After filling, switch to deliver-to-store phase
                         ant.FillingFromSource = false;
 
                         if (ant.FoodStoreTarget.HasValue)
                         {
                             ant.Currenttask.targetposition = ant.FoodStoreTarget.Value;
                             ant.path = null;
-                            try { pathfind(ant); }
-                            catch { /* try next tick */ }
+                            try { pathfind(ant); } catch { }
+                            return;
                         }
-                        else
-                        {
-                            // no store target recorded — finish task
-                            ant.Currenttask = null;
-                            ant.clamedtaskid = -1;
-                            ant.path = null;
-                        }
+
+                        ant.Currenttask = null; ant.clamedtaskid = -1; ant.path = null;
                         return;
                     }
 
-                    // Deliver phase: we have foodcarried > 0 (or filling not needed) and should head to store
+                    // Phase 3: deliver to store
                     if (ant.FoodStoreTarget.HasValue)
                     {
                         if (ant.Position != ant.FoodStoreTarget.Value)
@@ -598,7 +584,6 @@ namespace neah.main
                             try { pathfind(ant); }
                             catch
                             {
-                                // can't reach store -> abort and reset
                                 ant.Currenttask = null;
                                 ant.clamedtaskid = -1;
                                 ant.path = null;
@@ -608,10 +593,7 @@ namespace neah.main
                             return;
                         }
 
-                        // At store position: deposit
                         AddFoodToFoodStore(ant);
-
-                        // task finished — cleanup
                         ant.Currenttask = null;
                         ant.clamedtaskid = -1;
                         ant.path = null;
@@ -620,25 +602,68 @@ namespace neah.main
                         return;
                     }
 
-                    // Fallback: cleanup
+                    // fallback
                     ant.Currenttask = null;
                     ant.clamedtaskid = -1;
                     ant.path = null;
                     ant.FoodStoreTarget = null;
                     ant.FillingFromSource = false;
                     return;
-                // two part task first ant must fill inventory with food from nearest food source then go to food store and add it
-
-
-
-                case "build":
-                    // require ant to be on or adjacent 
-                    if (!IsAdjacentOrOn(ant.Position, task.targetposition))
+                case "farmwork":
+                    // Need to be standing on the farm to work. If not there, path to it.
+                    if (ant.Position != task.targetposition)
                     {
                         try
                         {
                             pathfind(ant);
                         }
+                        catch
+                        {
+                            // can't reach the farm — release the task
+                            ant.Currenttask = null;
+                            ant.clamedtaskid = -1;
+                            ant.path = null;
+                        }
+                        return;
+                    }
+
+                    // At farm position — find the farm entity and mark it as being worked.
+                    var farmCell = grid.GetCellAtLocation(tx, ty);
+                    var farmEntity = farmCell.Entities.OfType<farm>().FirstOrDefault();
+                    if (farmEntity != null)
+                    {
+                        farmEntity.antWorking = true;
+                    }
+
+                    // Check queue for any higher-priority task:
+                    // anything that is NOT "wander" and NOT "foodstoregather" is considered higher priority.
+                    var urgentTask = queue1.tasks
+                        .FirstOrDefault(t => t.id != ant.clamedtaskid
+                                             && !string.Equals(t.tasktype, "wander", StringComparison.OrdinalIgnoreCase)
+                                             && !string.Equals(t.tasktype, "foodstoregather", StringComparison.OrdinalIgnoreCase));
+
+                    if (urgentTask != null)
+                    {
+                        // stop working on farm
+                        if (farmEntity != null) farmEntity.antWorking = false;
+
+                        // claim the urgent task (remove from queue and assign to this ant)
+                        queue1.removetask(urgentTask.id);
+                        ant.Currenttask = urgentTask;
+                        ant.clamedtaskid = urgentTask.id;
+                        ant.path = null; // force path recompute to urgent target
+                        return;
+                    }
+
+                    // No urgent work — remain assigned to farm and don't move.
+                    // Keep the ant assigned so it continues to work until interrupted.
+                    ant.path = new List<int>(); // prevent movement while working
+                    return;
+
+                case "buildfarm": // build food store
+                    if (!IsAdjacentOrOn(ant.Position, task.targetposition))
+                    {
+                        try { pathfind(ant); }
                         catch
                         {
                             ant.Currenttask = null;
@@ -651,30 +676,19 @@ namespace neah.main
                     try
                     {
                         var buildCell = grid.GetCellAtLocation(tx, ty);
-                        if (buildCell.IsTraversable)
-                        {
-                            CreateFoodStore(tx, ty);
-                        }
+                        if (buildCell.IsTraversable) CreateFarm(tx, ty);
                     }
-                    catch
-                    {
-                        // ignore
-                    }
+                    catch { }
 
-                    // build is one-shot here
                     ant.Currenttask = null;
                     ant.clamedtaskid = -1;
                     ant.path = null;
                     return;
 
-                default:
-                    // Other tasks: if in position, complete; otherwise try to pathfind.
+                case "buildfoodstore": // build food store
                     if (!IsAdjacentOrOn(ant.Position, task.targetposition))
                     {
-                        try
-                        {
-                            pathfind(ant);
-                        }
+                        try { pathfind(ant); }
                         catch
                         {
                             ant.Currenttask = null;
@@ -684,7 +698,31 @@ namespace neah.main
                         return;
                     }
 
-                    // complete generic task
+                    try
+                    {
+                        var buildCell = grid.GetCellAtLocation(tx, ty);
+                        if (buildCell.IsTraversable) CreateFoodStore(tx, ty);
+                    }
+                    catch { }
+
+                    ant.Currenttask = null;
+                    ant.clamedtaskid = -1;
+                    ant.path = null;
+                    return;
+
+                default:
+                    if (!IsAdjacentOrOn(ant.Position, task.targetposition))
+                    {
+                        try { pathfind(ant); }
+                        catch
+                        {
+                            ant.Currenttask = null;
+                            ant.clamedtaskid = -1;
+                            ant.path = null;
+                        }
+                        return;
+                    }
+
                     ant.Currenttask = null;
                     ant.clamedtaskid = -1;
                     ant.path = null;
@@ -781,7 +819,7 @@ namespace neah.main
 
         public void inputselector()
         {
-            Console.WriteLine("1 : order the ants to dig \n2: order ants to make a food store \n3: select a cord to get the info of \nanything else : end tick ");
+            Console.WriteLine("1 : order the ants to dig \n2: order ants to make a food store \n3: select a cord to get the info of \n4: create a farm \nanything else : end tick ");
             var input = Console.ReadKey(true);
 
             if (input.KeyChar == '1')
@@ -798,7 +836,7 @@ namespace neah.main
             {
                 Console.WriteLine("please enter the x and y position of the thing you want to add food store ");
                 (int, int) cords = UserInputCords();
-                algorithm.Task buildtask = new algorithm.Task(queue1.lasttaskid++, "build", (cords.Item1, cords.Item2));
+                algorithm.Task buildtask = new algorithm.Task(queue1.lasttaskid++, "buildfoodstore", (cords.Item1, cords.Item2));
 
                 // enqueue the build task
                 queue1.addtask(buildtask);
@@ -826,6 +864,15 @@ namespace neah.main
                         Console.WriteLine($"   - FoodStore Contained={store.foodcontained}, Capacity={store.capacity}");
                     }
                 }
+            }
+            else if (input.KeyChar == '4')
+            {
+                Console.WriteLine("please enter the x and y position of the place you want to add farm to");
+                (int, int) cords = UserInputCords();
+                var farmentity = new farm(++lastEntityId, 'F');
+                AddEntityToGameGrid(cords.Item1, cords.Item2, farmentity);
+                farmentity.Position = (cords.Item1, cords.Item2);
+                Console.WriteLine($"Farm created at ({cords.Item1},{cords.Item2})");
             }
             else
             {
@@ -888,8 +935,16 @@ namespace neah.main
 
 
         }
+        public void CreateFarm(int x , int y)
+        {
+            if (!grid.IsInGridRange(x, y))
+                throw new ArgumentOutOfRangeException(nameof(x), "Position out of grid range.");
+            var farmentity = new farm(++lastEntityId, 'R');
+            AddEntityToGameGrid(x, y, farmentity);
+            farmentity.Position = (x, y);
+        }
 
-        
+
         public void printgrid()
         {
             grid.PrintGrid();
