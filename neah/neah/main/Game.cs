@@ -282,26 +282,26 @@ namespace neah.main
         }
         private void ProcessAntMovementAndTasks()
         {
-            // 1) Assign queued tasks to the closest available ant using ClosestAnt()
-            // Make a copy so we can safely remove tasks from the queue while iterating.
-            var pending = queue1.tasks.ToList();
-            foreach (var task in pending)
+            // 1) Assign queued tasks to idle ants using queue1.getnexttask
+            var ants = GetAllAnts();
+            foreach (var ant in ants)
             {
-                try
+                // Only assign a new task if the ant is idle (no current task)
+                if (ant.Currenttask == null || ant.clamedtaskid == -1)
                 {
-                    // ClosestAnt will set the ant's Currenttask and clamedtaskid if a free ant exists.
-                    ClosestAnt(task);
-                    // If assignment succeeded, remove the task from the queue.
-                    queue1.removetask(task.id);
-                }
-                catch
-                {
-                    // couldn't assign this task now (no free ants or other error) — leave it in the queue.
+                    var task = queue1.getnexttask(this, ant);
+                    if (task != null)
+                    {
+                        ant.Currenttask = task;
+                        ant.clamedtaskid = task.id;
+                        ant.path = null; // force path recompute
+                                         // Remove the task from the queue if your getnexttask doesn't already do this
+                        queue1.removetask(task.id);
+                    }
                 }
             }
 
             // 2) Move ants along their paths and let idle ants wander
-            var ants = GetAllAnts();
             foreach (var ant in ants)
             {
                 if (ant.Currenttask != null)
@@ -365,7 +365,7 @@ namespace neah.main
                         grid.AddEntityToCellLocation(nextX, nextY, ant);
                         ant.Position = (nextX, nextY);
 
-                        // remove the step atn took
+                        // remove the step ant took
                         ant.path.RemoveAt(0);
 
                         // If we've reached the end of the path, attempt to work on the task (may start multi-tick dig)
@@ -382,7 +382,7 @@ namespace neah.main
                 }
                 else
                 {
-                    // idle ant
+                    // kinda redundent now (check the queue class)
                     antwander(ant);
                 }
             }

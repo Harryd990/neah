@@ -17,14 +17,13 @@ namespace neah.entetys
         public override char Species { get; set; } = 'Q';
         public override string Symbol { get; set; } = "[Q]";
 
-        public int EggGracePeriod { get; set; } = 0;
+        public int EggGracePeriod { get; set; } = 30;
 
         // makes new egg at queen position
         public void LayEggs(Game game)
         {
-            int y = Position.Item1;
-            int x = Position.Item2;
-
+            int y = Position.Item2;
+            int x = Position.Item1;
             var egg = new Egg(game.lastEntityId++, 'E');
             game.AddEntityToGameGrid(x, y, egg);
 

@@ -22,6 +22,7 @@ namespace neah.entetys
         public override int Id { get; set; }
         public override char Species { get; set; } = 'F';
         public override string Symbol { get; set; } = "[F]";
+        public int virtFoodContained { get; set; } = 0;
 
         public (int, int) Foodrange { get; set; }
         public int currentAmount { get; set; }
