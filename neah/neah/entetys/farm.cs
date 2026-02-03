@@ -28,8 +28,10 @@ namespace neah.entetys
             if (antWorking)
             {
                 FoodContained += 1000;
+                virtFoodContained += 1000;
+                TickToNextHarvest = 10;
             }
-            TickToNextHarvest = 10;
+            
         }
         public void TickFarm()
         {

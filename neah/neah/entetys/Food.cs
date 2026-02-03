@@ -11,10 +11,12 @@ namespace neah.entetys
         public Food(int id, int x, int y) : base(id, 'F')
         {
             Random random = new Random();
-
+            int temp = 0;
             // sets food range between 25 50 100
             Foodrange = (25, random.Next(1000, 10000));
-            currentAmount = random.Next(Foodrange.Item1, Foodrange.Item2 + 1);
+            temp = random.Next(Foodrange.Item1, Foodrange.Item2 + 1);
+            virtFoodContained = temp;
+            currentAmount = temp;
 
             Id = Id;
         }

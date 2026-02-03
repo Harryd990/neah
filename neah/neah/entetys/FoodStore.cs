@@ -29,6 +29,7 @@ namespace neah.entetys
         public void addfood(Ant ant)
             {
                 foodcontained += ant.foodcarried;
+            virtFoodContained += ant.foodcarried;
         }
         
         public void removefood(Ant ant)
