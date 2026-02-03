@@ -14,6 +14,12 @@ namespace neah.main
 {
     /*
      * to do:
+     * check tasks to see if they can still be comepleted (eg food gather but no food left) or clame the food for a task or something 
+     * make it so the user can cancle half way through a input (eg build dig etc)
+     * check queen is still alive if not promote one
+     * check queen is still making babys 
+     * food disapeering?
+     * cannot put multiple things ontop of each other fix
      * multiple ants are going to same farm fix 
      * change build task so it can build farms too (only underground)
      * add stuff so ants work in farms if there is no other jobs 
@@ -116,13 +122,13 @@ namespace neah.main
         public void Run()
         {
             bool running = true;
-            Thread.Sleep(20); 
+            //Thread.Sleep(20); 
 
             grid.PrintGrid();
             while (running)
             {
                 HungerAnts();
-                // PrintAllTasksInQueue(); use for debuging
+                PrintAllTasksInQueue();
                 UgentHungerCheck();
 
                 inputselector();
@@ -150,8 +156,31 @@ namespace neah.main
                 }
 
 
-                Thread.Sleep(10);
+                //Thread.Sleep(10);
             }
+        }
+        private void UnassignTaskAndReleaseFarm(Ant ant)
+        {
+            if (ant == null) return;
+
+            // If the ant was assigned a farm task, clear the farm reservation
+            if (ant.Currenttask != null && string.Equals(ant.Currenttask.tasktype, "farmwork", StringComparison.OrdinalIgnoreCase))
+            {
+                var pos = ant.Currenttask.targetposition;
+                if (grid.IsInGridRange(pos.Item1, pos.Item2))
+                {
+                    var cell = grid.GetCellAtLocation(pos.Item1, pos.Item2);
+                    var f = cell.Entities.OfType<farm>().FirstOrDefault();
+                    if (f != null) f.antWorking = false;
+                }
+            }
+
+            // Clear ant state consistently
+            ant.Currenttask = null;
+            ant.clamedtaskid = -1;
+            ant.path = null;
+            ant.FoodStoreTarget = null;
+            ant.FillingFromSource = false;
         }
         public void GeneralTickUpdates()
         {
@@ -173,7 +202,8 @@ namespace neah.main
                     foreach(var farm in farms)
                     {
                         farm.TickFarm();
-                        if (farm.antWorking == false)
+                        if (farm.antWorking == false && !queue1.tasks.Any(t => string.Equals(t.tasktype, "farmwork", StringComparison.OrdinalIgnoreCase)
+                            && t.targetposition == (x, y)))
                         {
                             algorithm.Task foodstoretask = new algorithm.Task(queue1.lasttaskid++, "farmwork", (x, y));
                             queue1.addtask(foodstoretask);
@@ -194,9 +224,23 @@ namespace neah.main
                     {
                         if (store.foodcontained < store.capacity)
                         {
-                            // add task to queue to fill this store
-                            algorithm.Task foodstoretask = new algorithm.Task(queue1.lasttaskid++, "foodstoregather", (x, y));
-                            queue1.addtask(foodstoretask);
+                            // Count queued tasks targeting this store
+                            int queued = queue1.tasks.Count(t =>
+                                string.Equals(t.tasktype, "foodstoregather", StringComparison.OrdinalIgnoreCase) &&
+                                t.targetposition == (x, y));
+
+                            // Count ants currently assigned to gather for this store
+                            int assigned = GetAllAnts().Count(a =>
+                                a.Currenttask != null &&
+                                string.Equals(a.Currenttask.tasktype, "foodstoregather", StringComparison.OrdinalIgnoreCase) &&
+                                a.Currenttask.targetposition == (x, y));
+
+                            // Only add a new task if total (queued + assigned) is less than 5
+                            if (queued + assigned < 5)
+                            {
+                                algorithm.Task foodstoretask = new algorithm.Task(queue1.lasttaskid++, "foodstoregather", (x, y));
+                                queue1.addtask(foodstoretask);
+                            }
                         }
                     }
                 }
@@ -283,9 +327,7 @@ namespace neah.main
                             catch
                             {
                                 // can't reach — release the task so others can try
-                                ant.Currenttask = null;
-                                ant.clamedtaskid = -1;
-                                ant.path = null;
+                                UnassignTaskAndReleaseFarm(ant);
                                 continue;
                             }
                         }
@@ -308,9 +350,8 @@ namespace neah.main
                             }
                             catch
                             {
-                                ant.Currenttask = null;
-                                ant.clamedtaskid = -1;
-                                ant.path = null;
+                                // release the ant and any farm reservation
+                                UnassignTaskAndReleaseFarm(ant);
                             }
                             continue;
                         }
@@ -863,16 +904,22 @@ namespace neah.main
                     {
                         Console.WriteLine($"   - FoodStore Contained={store.foodcontained}, Capacity={store.capacity}");
                     }
+                    else if (entity is farm farmEntity)
+                    {
+                        Console.WriteLine($"   - Farm FoodContained={farmEntity.FoodContained}, ticks to next harvest={farmEntity.TickToNextHarvest}, AntWorking={farmEntity.antWorking}");
+                    }
                 }
             }
             else if (input.KeyChar == '4')
             {
                 Console.WriteLine("please enter the x and y position of the place you want to add farm to");
                 (int, int) cords = UserInputCords();
-                var farmentity = new farm(++lastEntityId, 'F');
-                AddEntityToGameGrid(cords.Item1, cords.Item2, farmentity);
-                farmentity.Position = (cords.Item1, cords.Item2);
-                Console.WriteLine($"Farm created at ({cords.Item1},{cords.Item2})");
+                algorithm.Task buildtask = new algorithm.Task(queue1.lasttaskid++, "buildfarm", (cords.Item1, cords.Item2));
+
+                // enqueue the build task
+                queue1.addtask(buildtask);
+                Console.WriteLine($"Queued build task #{buildtask.id} at ({cords.Item1},{cords.Item2})");
+
             }
             else
             {
@@ -970,50 +1017,103 @@ namespace neah.main
          */
         public void ClosestAnt(algorithm.Task task)
         {
-            List<Ant> ants = new List<Ant>();
-            for(int x = 0; x < grid.width; x++)
+            // Build list of candidate ants:
+            // - ants with no claimed task
+            // - ants currently doing "farmwork" (we allow them to be considered, but we will only remove their farm reservation
+            //   if they are the chosen ant)
+            List<Ant> candidates = new List<Ant>();
+            for (int x = 0; x < grid.width; x++)
             {
                 for (int y = 0; y < grid.height; y++)
                 {
-                    var  cell = grid.GetCellAtLocation(x, y);
+                    var cell = grid.GetCellAtLocation(x, y);
                     foreach (var entity in cell.Entities)
                     {
-                        if (entity is Ant)
+                        if (entity is Ant a)
                         {
-                            Ant ant = (Ant)entity;
-                            if (ant.clamedtaskid == -1)
+                            if (a.clamedtaskid == -1)
                             {
-                                ants.Add(ant);
+                                candidates.Add(a);
+                            }
+                            else if (a.Currenttask != null && string.Equals(a.Currenttask.tasktype, "farmwork", StringComparison.OrdinalIgnoreCase))
+                            {
+                                // include ants currently farming as candidates (they can be interrupted),
+                                // but we will only remove their farm reservation if they are actually chosen.
+                                candidates.Add(a);
                             }
                         }
                     }
                 }
             }
-            if(ants.Count == 0)
+
+            if (candidates.Count == 0)
             {
                 throw new Exception("no ants cn task");
             }
-            int xpos = task.targetposition.Item1;
-            int ypos = task.targetposition.Item2;
+
+            int goalX = task.targetposition.Item1;
+            int goalY = task.targetposition.Item2;
+
+            // Find closest candidate
             Ant closestant = null;
             int closestdistance = int.MaxValue;
-            foreach (var ant in ants)
+            foreach (var ant in candidates)
             {
-                int distance = Math.Abs(ant.Position.Item1 - xpos) + Math.Abs(ant.Position.Item2 - ypos);
+                int distance = Math.Abs(ant.Position.Item1 - goalX) + Math.Abs(ant.Position.Item2 - goalY);
                 if (distance < closestdistance)
                 {
                     closestdistance = distance;
                     closestant = ant;
                 }
             }
-            if(closestant != null)
-            {
-                closestant.Currenttask = task;
-                closestant.clamedtaskid = task.id;
-            }
-            else
+
+            if (closestant == null)
             {
                 throw new Exception("no ants cn task");
+            }
+
+            // If the chosen ant is currently farming, release its farm reservation now (only because it was chosen).
+            if (closestant.Currenttask != null && string.Equals(closestant.Currenttask.tasktype, "farmwork", StringComparison.OrdinalIgnoreCase))
+            {
+                var oldPos = closestant.Currenttask.targetposition;
+                if (grid.IsInGridRange(oldPos.Item1, oldPos.Item2))
+                {
+                    var oldCell = grid.GetCellAtLocation(oldPos.Item1, oldPos.Item2);
+                    var oldFarm = oldCell.Entities.OfType<farm>().FirstOrDefault();
+                    if (oldFarm != null)
+                    {
+                        oldFarm.antWorking = false;
+                    }
+                }
+
+                // Clear the ant's previous farm task state before assigning the new task.
+                closestant.Currenttask = null;
+                closestant.clamedtaskid = -1;
+                closestant.path = null;
+                closestant.FoodStoreTarget = null;
+                closestant.FillingFromSource = false;
+            }
+
+            // Assign the new task
+            closestant.Currenttask = task;
+            closestant.clamedtaskid = task.id;
+            closestant.path = null; // force recompute on next tick
+
+            // Special handling if we just assigned a farmwork task: reserve the farm and remove queued duplicates
+            if (string.Equals(task.tasktype, "farmwork", StringComparison.OrdinalIgnoreCase))
+            {
+                if (grid.IsInGridRange(goalX, goalY))
+                {
+                    var farmCell = grid.GetCellAtLocation(goalX, goalY);
+                    var f = farmCell.Entities.OfType<farm>().FirstOrDefault();
+                    if (f != null) f.antWorking = true;
+                }
+
+                // Remove any other queued farmwork tasks for the same position to avoid duplicate assignments
+                queue1.tasks.RemoveAll(t =>
+                    t.id != task.id &&
+                    string.Equals(t.tasktype, "farmwork", StringComparison.OrdinalIgnoreCase) &&
+                    t.targetposition == task.targetposition);
             }
         }
         // methord to find closes food thing (store or just food) to ant
@@ -1096,10 +1196,10 @@ namespace neah.main
                 ant.Currenttask = foodtask;
                 ant.clamedtaskid = foodtask.id;
             }
-            else
-            {
-                throw new Exception("no food found");
-            }
+            //else
+            //{
+                //throw new Exception("no food found");
+            //}
         }
         public void pathfind(Ant ant)
         {
