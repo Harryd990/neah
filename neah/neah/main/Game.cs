@@ -14,21 +14,23 @@ namespace neah.main
 {
     /*
      * to do:
-     * check tasks to see if they can still be comepleted (eg food gather but no food left) or clame the food for a task or something 
+     * 
      * make it so the user can cancle half way through a input (eg build dig etc)
-     * check queen is still alive if not promote one
-     * check queen is still making babys 
-     * food disapeering?
-     * cannot put multiple things ontop of each other fix
-     * multiple ants are going to same farm fix 
+     * 
+     * 
+     *  make the underground stuff work using the methord (premade) and using the other methord currently used to building together to check 4 underground buildimng could also make it a atribute  of the building
+     *  
+     * 
+     * 
      * change build task so it can build farms too (only underground)
-     * add stuff so ants work in farms if there is no other jobs 
+     * 
      * make so food stores can onlu be made undegroud
      * add farms (only underground) that slowly generate food over time
      * queen only gives birth underground
-     * move all starting yap into game initialize ( cos looks cooler)
+     * 
      * add auto ticking and speed dial 
      * add saving to text file (easy marks)
+     * 
      * */
 
     public class Game
@@ -159,6 +161,29 @@ namespace neah.main
                 //Thread.Sleep(10);
             }
         }
+        
+        public void QueenPromotionCheck()
+        {
+            if (queen == null)
+            {
+                var ants = GetAllAnts();
+                var newQueen = ants.OfType<Worker>().FirstOrDefault();
+                if (newQueen != null)
+                {
+                    queen = new Queen(newQueen.Id, 'Q');
+                    var cell = grid.GetCellAtLocation(newQueen.Position.Item1, newQueen.Position.Item2);
+                    cell.RemoveEntity(newQueen);
+                    cell.AddEntity(queen);
+                    Console.WriteLine($"A new queen has been promoted at ({newQueen.Position.Item1},{newQueen.Position.Item2})");
+                }
+            }
+            
+            
+        }
+        public void BuildingUndergroundFull()
+        {
+
+        }
         private void UnassignTaskAndReleaseFarm(Ant ant)
         {
             if (ant == null) return;
@@ -188,6 +213,7 @@ namespace neah.main
             ProcessEggHatching();
             Check4EmptyStores();
             UpdateFarms();
+            QueenPromotionCheck();
             // check if there is a food store that isnt full if so add a food store fill task to quue
         }
         public void UpdateFarms()
@@ -245,6 +271,36 @@ namespace neah.main
                     }
                 }
             }
+        }
+        public (int,int) Fullinput4building()
+        {
+            // use both get cords and check4 super impose to get valid cords for building
+            while (true)
+            {
+                var cords = UserInputCords();
+                if (Check4superimpose(cords))
+                {
+                    return cords;
+                }
+                else
+                {
+                    Console.WriteLine("Cannot build here, there is already a valid entity in the way. Please choose different coordinates.");
+                }
+            }
+        }
+        public bool Check4superimpose((int,int) cords)
+        {
+            var cell = grid.GetCellAtLocation(cords.Item1, cords.Item2);
+            // check if there is already a valid thing in the position the user is trying to build on if there is then return false and dont build there (not a farm or store or food source)
+            if (cell.Entities.Count >= 1)
+            {
+                if (cell.Entities.OfType<FoodStore>().Any() || cell.Entities.OfType<farm>().Any() || cell.Entities.OfType<Food>().Any())
+                {
+                    return false;
+                }
+                else return true;
+            }
+            else return true;
         }
         public void AddFoodToFoodStore(Ant ant)
         {
@@ -860,15 +916,15 @@ namespace neah.main
 
         public void inputselector()
         {
-            Console.WriteLine("1 : order the ants to dig \n2: order ants to make a food store \n3: select a cord to get the info of \n4: create a farm \nanything else : end tick ");
+            Console.WriteLine("1 : order the ants to dig \n2: order ants to make a food store \n3: select a cord to get the info of \n4: create a farm \n5: delete valid entiry from position (farms/foodstores) \nanything else : end tick ");
             var input = Console.ReadKey(true);
 
             if (input.KeyChar == '1')
             {
-                Console.WriteLine("please enter the x and y position of the thing you want to dig");
+                Console.WriteLine("please enter the x and y position of the thing you want to dig ");
                 (int, int) cords = UserInputCords();
                 algorithm.Task digtask = new algorithm.Task(queue1.lasttaskid++, "dig", (cords.Item1, cords.Item2));
-
+                
                 // enqueue the task so ProcessAntMovementAndTasks will assign it
                 queue1.addtask(digtask);
                 Console.WriteLine($"Queued dig task #{digtask.id} at ({cords.Item1},{cords.Item2})");
@@ -876,7 +932,7 @@ namespace neah.main
             else if (input.KeyChar == '2')
             {
                 Console.WriteLine("please enter the x and y position of the thing you want to add food store ");
-                (int, int) cords = UserInputCords();
+                (int, int) cords = Fullinput4building();
                 algorithm.Task buildtask = new algorithm.Task(queue1.lasttaskid++, "buildfoodstore", (cords.Item1, cords.Item2));
 
                 // enqueue the build task
@@ -885,7 +941,7 @@ namespace neah.main
             }
             else if (input.KeyChar == '3')
             {
-                Console.WriteLine("please enter the x and y position of the thing you want to get info on ");
+                Console.WriteLine("please enter the x and y position of the thing you want to get info on  ");
                 (int, int) cords = UserInputCords();
                 var cell = grid.GetCellAtLocation(cords.Item1, cords.Item2);
                 Console.WriteLine($"Cell at ({cords.Item1},{cords.Item2}): Type={cell.GetType().Name}, Entities={cell.Entities.Count}");
@@ -906,20 +962,41 @@ namespace neah.main
                     }
                     else if (entity is farm farmEntity)
                     {
-                        Console.WriteLine($"   - Farm FoodContained={farmEntity.FoodContained}, ticks to next harvest={farmEntity.TickToNextHarvest}, AntWorking={farmEntity.antWorking}");
+                        Console.WriteLine($"   - Farm FoodContained={farmEntity.FoodContained}, ticks to next harvest={farmEntity.TickToNextHarvest}, AntWorking={farmEntity.antWorking} Ant has been working for {farmEntity.antbeenworkingforXticks} ticks");
                     }
                 }
             }
             else if (input.KeyChar == '4')
             {
-                Console.WriteLine("please enter the x and y position of the place you want to add farm to");
-                (int, int) cords = UserInputCords();
+                Console.WriteLine("please enter the x and y position of the place you want to add farm to ");
+                (int, int) cords = Fullinput4building();
                 algorithm.Task buildtask = new algorithm.Task(queue1.lasttaskid++, "buildfarm", (cords.Item1, cords.Item2));
 
                 // enqueue the build task
                 queue1.addtask(buildtask);
                 Console.WriteLine($"Queued build task #{buildtask.id} at ({cords.Item1},{cords.Item2})");
 
+            }
+            else if (int.TryParse(input.KeyChar.ToString(), out int num) && num == 5)
+            {
+                Console.WriteLine("please enter the x and y position of the place you want to remove an entity from (farms/foodstores) ");
+                (int, int) cords = UserInputCords();
+                var cell = grid.GetCellAtLocation(cords.Item1, cords.Item2);
+                var farmEntity = cell.Entities.OfType<farm>().FirstOrDefault();
+                if (farmEntity != null)
+                {
+                    cell.RemoveEntity(farmEntity);
+                    Console.WriteLine($"Removed farm at ({cords.Item1},{cords.Item2})");
+                    return;
+                }
+                var storeEntity = cell.Entities.OfType<FoodStore>().FirstOrDefault();
+                if (storeEntity != null)
+                {
+                    cell.RemoveEntity(storeEntity);
+                    Console.WriteLine($"Removed food store at ({cords.Item1},{cords.Item2})");
+                    return;
+                }
+                Console.WriteLine($"No farm or food store found at ({cords.Item1},{cords.Item2}) to remove.");
             }
             else
             {
@@ -1037,9 +1114,18 @@ namespace neah.main
                             }
                             else if (a.Currenttask != null && string.Equals(a.Currenttask.tasktype, "farmwork", StringComparison.OrdinalIgnoreCase))
                             {
-                                // include ants currently farming as candidates (they can be interrupted),
-                                // but we will only remove their farm reservation if they are actually chosen.
-                                candidates.Add(a);
+                                // Check the farm the ant is assigned to and only include the ant if
+                                // the farm reports the ant has been working there for at least 30 ticks.
+                                var farmPos = a.Currenttask.targetposition;
+                                if (grid.IsInGridRange(farmPos.Item1, farmPos.Item2))
+                                {
+                                    var farmCell = grid.GetCellAtLocation(farmPos.Item1, farmPos.Item2);
+                                    var f = farmCell.Entities.OfType<farm>().FirstOrDefault();
+                                    if (f != null && f.antbeenworkingforXticks >= 30)
+                                    {
+                                        candidates.Add(a);
+                                    }
+                                }
                             }
                         }
                     }

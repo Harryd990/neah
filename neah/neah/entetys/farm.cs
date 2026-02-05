@@ -16,6 +16,8 @@ namespace neah.entetys
         // chane gathe foods to sore thing to haul food so can be used on farms too 
         // ant needs to work in farm for it t make food ( farm makes enough food for 10 ants)
         public int FoodContained { get; set; } = 0;
+
+        public int antbeenworkingforXticks { get; set; } = 0;
         public int TickToNextHarvest { get; set; } = 10;
         public bool antWorking { get; set; } = false;
 
@@ -26,16 +28,24 @@ namespace neah.entetys
                 FoodContained += 1000;
             }
             TickToNextHarvest = 10;
+            // ant been working stuff so ants will work for atleast a while on each farm before dipping strait away 
+            
         }
         public void TickFarm()
         {
             if (TickToNextHarvest > 0 && antWorking)
             {
                 TickToNextHarvest--;
+                antbeenworkingforXticks++;
             }
             if (TickToNextHarvest == 0)
             {
                 HarvestFarm();
+                antbeenworkingforXticks++;
+            }
+            if(antWorking ==false)
+            {
+                antbeenworkingforXticks = 0;
             }
         }
 
