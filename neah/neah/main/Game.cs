@@ -15,10 +15,9 @@ namespace neah.main
     /*
      * to do:
      *  make the underground stuff work using the methord (premade) and using the other methord currently used to building together to check 4 underground buildimng could also make it a atribute  of the building
-     * change build task so it can build farms too (only underground)
-     * make so food stores can onlu be made undegroud
-     * add farms (only underground) that slowly generate food over time
-     * queen only gives birth underground
+     * 
+     * queen only gives birth underground- do so by adding a task type for queen retrete where she picks a random underground cell and moves there to lay eggs, add a slider for ideal population so queen makes babys up to slider max
+     * mb add gestation timer for queen or just make the egg get layed when task finishes or she could serch for a underground space she can reach within her gestation time 
      * add saving to text file (easy marks)
      * 
      * to do on wpf:
