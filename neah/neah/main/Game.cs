@@ -248,7 +248,7 @@ namespace neah.main
                     var foodStores = cell.Entities.OfType<FoodStore>().ToList();
                     foreach (var store in foodStores)
                     {
-                        if (store.foodcontained < store.capacity)
+                        if (store.virtFoodContained < store.capacity)
                         {
                             // Count queued tasks targeting this store
                             int queued = queue1.tasks.Count(t =>
@@ -338,26 +338,26 @@ namespace neah.main
         }
         private void ProcessAntMovementAndTasks()
         {
-            // 1) Assign queued tasks to the closest available ant using ClosestAnt()
-            // Make a copy so we can safely remove tasks from the queue while iterating.
-            var pending = queue1.tasks.ToList();
-            foreach (var task in pending)
+            // 1) Assign queued tasks to idle ants using queue1.getnexttask
+            var ants = GetAllAnts();
+            foreach (var ant in ants)
             {
-                try
+                // Only assign a new task if the ant is idle (no current task)
+                if (ant.Currenttask == null || ant.clamedtaskid == -1)
                 {
-                    // ClosestAnt will set the ant's Currenttask and clamedtaskid if a free ant exists.
-                    ClosestAnt(task);
-                    // If assignment succeeded, remove the task from the queue.
-                    queue1.removetask(task.id);
-                }
-                catch
-                {
-                    // couldn't assign this task now (no free ants or other error) — leave it in the queue.
+                    var task = queue1.getnexttask(this, ant);
+                    if (task != null)
+                    {
+                        ant.Currenttask = task;
+                        ant.clamedtaskid = task.id;
+                        ant.path = null; // force path recompute
+                                         // Remove the task from the queue if your getnexttask doesn't already do this
+                        queue1.removetask(task.id);
+                    }
                 }
             }
 
             // 2) Move ants along their paths and let idle ants wander
-            var ants = GetAllAnts();
             foreach (var ant in ants)
             {
                 if (ant.Currenttask != null)
@@ -421,7 +421,7 @@ namespace neah.main
                         grid.AddEntityToCellLocation(nextX, nextY, ant);
                         ant.Position = (nextX, nextY);
 
-                        // remove the step atn took
+                        // remove the step ant took
                         ant.path.RemoveAt(0);
 
                         // If we've reached the end of the path, attempt to work on the task (may start multi-tick dig)
@@ -438,7 +438,7 @@ namespace neah.main
                 }
                 else
                 {
-                    // idle ant
+                    // kinda redundent now (check the queue class)
                     antwander(ant);
                 }
             }
@@ -606,12 +606,12 @@ namespace neah.main
                                 var c = grid.GetCellAtLocation(x, y);
                                 foreach (var e in c.Entities)
                                 {
-                                    if (e is Food f && f.currentAmount > 0)
+                                    if (e is Food f && f.virtFoodContained > 0)
                                     {
                                         int d = Math.Abs(ant.Position.Item1 - x) + Math.Abs(ant.Position.Item2 - y);
                                         if (d < bestFoodDist) { bestFoodDist = d; closestFood = f; }
                                     }
-                                    else if (e is farm fm && fm.FoodContained > 0)
+                                    else if (e is farm fm && fm.virtFoodContained > 0)
                                     {
                                         int d = Math.Abs(ant.Position.Item1 - x) + Math.Abs(ant.Position.Item2 - y);
                                         if (d < bestFarmDist) { bestFarmDist = d; closestFarm = fm; }
@@ -631,9 +631,18 @@ namespace neah.main
                         }
 
                         if (closestFarm != null && (closestFood == null || bestFarmDist < bestFoodDist))
+                        {
                             ant.Currenttask.targetposition = closestFarm.Position;
+                            closestFarm.virtFoodContained -= Math.Min(ant.carryingcapacity - ant.foodcarried, closestFarm.virtFoodContained);
+
+                        }
+                            
                         else if (closestFood != null)
+                        {
                             ant.Currenttask.targetposition = closestFood.Position;
+                            closestFood.virtFoodContained -= Math.Min(ant.carryingcapacity - ant.foodcarried, closestFood.virtFoodContained);
+                        }
+                            
 
                         ant.FillingFromSource = true;
                         ant.path = null;
@@ -1214,7 +1223,7 @@ namespace neah.main
                     var cell = grid.GetCellAtLocation(x, y);
                     foreach (var entity in cell.Entities)
                     {
-                        if (entity is FoodStore store && store.foodcontained > 0)
+                        if (entity is FoodStore store && store.virtFoodContained > 0)
                         {
                             foodStores.Add(store);
                         }
@@ -1237,6 +1246,7 @@ namespace neah.main
                 if (closestStore != null)
                 {
                     algorithm.Task foodtask = new algorithm.Task(queue1.lasttaskid++, "gatherfood", closestStore.Position);
+                    closestStore.virtFoodContained -= Math.Min(ant.maxfood - ant.food, closestStore.virtFoodContained);
                     ant.Currenttask = foodtask;
                     ant.clamedtaskid = foodtask.id;
                     return;
@@ -1252,7 +1262,7 @@ namespace neah.main
                     var cell = grid.GetCellAtLocation(x, y);
                     foreach (var entity in cell.Entities)
                     {
-                        if (entity is Food food)
+                        if (entity is Food food && food.virtFoodContained >= Math.Min(ant.maxfood - ant.food, food.virtFoodContained))
                         {
                             foodnat.Add(food);
                         }
@@ -1279,6 +1289,7 @@ namespace neah.main
             if (closestfood != null)
             {
                 algorithm.Task foodtask = new algorithm.Task(queue1.lasttaskid++, "gatherfood", closestfood.Position);
+                closestfood.virtFoodContained -= Math.Min(ant.maxfood - ant.food, closestfood.virtFoodContained);
                 ant.Currenttask = foodtask;
                 ant.clamedtaskid = foodtask.id;
             }

@@ -24,10 +24,12 @@ namespace neah.entetys
             public override string Symbol { get; set; } = "[S]";
 
         public override (int, int) Position { get; set; }
+        public int virtFoodContained { get; set; } = 0;
 
         public void addfood(Ant ant)
             {
                 foodcontained += ant.foodcarried;
+            virtFoodContained += ant.foodcarried;
         }
         
         public void removefood(Ant ant)

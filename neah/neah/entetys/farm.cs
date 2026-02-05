@@ -15,6 +15,10 @@ namespace neah.entetys
         // farm generates food over time every 10 ticks 100 food is made costs 10 food to create a farm
         // chane gathe foods to sore thing to haul food so can be used on farms too 
         // ant needs to work in farm for it t make food ( farm makes enough food for 10 ants)
+
+        // add virtual food contained (so tasks can claim food from farm without doubbeling up)
+
+        public int virtFoodContained { get; set; } = 0;
         public int FoodContained { get; set; } = 0;
 
         public int antbeenworkingforXticks { get; set; } = 0;
@@ -26,6 +30,8 @@ namespace neah.entetys
             if (antWorking)
             {
                 FoodContained += 1000;
+                virtFoodContained += 1000;
+                TickToNextHarvest = 10;
             }
             TickToNextHarvest = 10;
             // ant been working stuff so ants will work for atleast a while on each farm before dipping strait away 
