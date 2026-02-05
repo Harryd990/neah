@@ -14,23 +14,17 @@ namespace neah.main
 {
     /*
      * to do:
-     * 
-     * make it so the user can cancle half way through a input (eg build dig etc)
-     * 
-     * 
      *  make the underground stuff work using the methord (premade) and using the other methord currently used to building together to check 4 underground buildimng could also make it a atribute  of the building
-     *  
-     * 
-     * 
      * change build task so it can build farms too (only underground)
-     * 
      * make so food stores can onlu be made undegroud
      * add farms (only underground) that slowly generate food over time
      * queen only gives birth underground
-     * 
-     * add auto ticking and speed dial 
      * add saving to text file (easy marks)
      * 
+     * to do on wpf:
+     * add a slider for ideal population so queen makes babys up to slider max 
+     * make it so the user can cancle half way through a input (eg build dig etc)
+     * add auto ticking and speed dial 
      * */
 
     public class Game
@@ -180,10 +174,7 @@ namespace neah.main
             
             
         }
-        public void BuildingUndergroundFull()
-        {
-
-        }
+        
         private void UnassignTaskAndReleaseFarm(Ant ant)
         {
             if (ant == null) return;
@@ -272,6 +263,26 @@ namespace neah.main
                 }
             }
         }
+        public bool UnderGAndOpen((int x, int y) coords, int gridHeight)
+        {
+            int y = coords.y;
+            // Check if y is in the bottom 3/4 of the grid
+            if (y < gridHeight / 4)
+                return false;
+
+            // Check if the cell is not dirt
+            var cellType = GetCellType(coords.x, coords.y);
+            if (cellType == "dirt")
+                return false;
+
+            return true;
+        }
+        public string GetCellType(int x, int y)
+        {
+            var cell = grid.GetCellAtLocation(x, y);
+            return cell.GetType().Name;
+        }
+
         public (int,int) Fullinput4building()
         {
             // use both get cords and check4 super impose to get valid cords for building
@@ -280,7 +291,15 @@ namespace neah.main
                 var cords = UserInputCords();
                 if (Check4superimpose(cords))
                 {
-                    return cords;
+                    if(UnderGAndOpen(cords, grid.height))
+                    {
+                        return cords;
+                    }
+                    else
+                    {
+                        Console.WriteLine("You can only build underground and on non-dirt cells. Please choose different coordinates.");
+                    }
+
                 }
                 else
                 {
