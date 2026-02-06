@@ -24,7 +24,7 @@ namespace neah.entetys
         public int antbeenworkingforXticks { get; set; } = 0;
         public int TickToNextHarvest { get; set; } = 10;
         public bool antWorking { get; set; } = false;
-
+        
         public void HarvestFarm()
         {
             if (antWorking)
@@ -33,9 +33,15 @@ namespace neah.entetys
                 virtFoodContained += 1000;
                 TickToNextHarvest = 10;
             }
+
             TickToNextHarvest = 10;
             // ant been working stuff so ants will work for atleast a while on each farm before dipping strait away 
-            
+
+            // add virtual food contained (so tasks can claim food from farm without doubbeling up)
+
+        
+
+
         }
         public void TickFarm()
         {

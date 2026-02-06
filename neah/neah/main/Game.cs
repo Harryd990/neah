@@ -14,10 +14,10 @@ namespace neah.main
 {
     /*
      * to do:
-     *  make the underground stuff work using the methord (premade) and using the other methord currently used to building together to check 4 underground buildimng could also make it a atribute  of the building
-     * 
-     * queen only gives birth underground- do so by adding a task type for queen retrete where she picks a random underground cell and moves there to lay eggs, add a slider for ideal population so queen makes babys up to slider max
-     * mb add gestation timer for queen or just make the egg get layed when task finishes or she could serch for a underground space she can reach within her gestation time 
+     *  fix the queen stuff as shes not actualy making babys and the retr task is buggy and not really working as intended
+     *  dont think queen exists like its not showing up with get cell info may be why promotion check not working too
+     *  queen promotion check isnt working too 
+     *  the farmwork task is being called multiple times there shold be a check in the update farms task to see if there is already a farm work task for that farm or if there is an ant currently working on the farm before adding a new farm work task to the queue
      * add saving to text file (easy marks)
      * 
      * to do on wpf:
@@ -143,10 +143,7 @@ namespace neah.main
                 if (queen != null && queen.food >= 60 && queen.EggGracePeriod <= 0)
                 {
                     //throw new Exception("Queen is laying eggs");
-                    queen.food = queen.food-30;
-                    queen.LayEggs(this);
-                    // add stuff here for queen moving underground / hiding to lay eggs 
-                    queen.EggGracePeriod = 30;
+                    algorithm.Task queenTask = new algorithm.Task(queue1.lasttaskid++, "queenretrete", queen.Position);
 
                 }
 
@@ -203,7 +200,7 @@ namespace neah.main
             ProcessEggHatching();
             Check4EmptyStores();
             UpdateFarms();
-            QueenPromotionCheck();
+            //QueenPromotionCheck();
             // check if there is a food store that isnt full if so add a food store fill task to quue
         }
         public void UpdateFarms()
@@ -602,6 +599,98 @@ namespace neah.main
                     ant.Currenttask = null;
                     ant.clamedtaskid = -1;
                     ant.path = null;
+                    return;
+
+                
+                    
+                case "queenretrete":
+                    var q = ant as Queen;
+                    if (q == null) return;
+
+                    // Validate current target; if it's not a valid underground open cell, pick a new one
+                    bool currentTargetValid = grid.IsInGridRange(tx, ty)
+                        && UnderGAndOpen((tx, ty), grid.height)
+                        && !grid.GetCellAtLocation(tx, ty).Entities.OfType<FoodStore>().Any()
+                        && !grid.GetCellAtLocation(tx, ty).Entities.OfType<farm>().Any()
+                        && !grid.GetCellAtLocation(tx, ty).Entities.OfType<Food>().Any();
+
+                    if (!currentTargetValid)
+                    {
+                        var posCells = new List<Cell>();
+                        for (int x = 0; x < grid.width; x++)
+                        {
+                            for (int y = 0; y < grid.height; y++)
+                            {
+                                var c = grid.GetCellAtLocation(x, y);
+                                if (UnderGAndOpen((x, y), grid.height)
+                                    && !c.Entities.OfType<FoodStore>().Any()
+                                    && !c.Entities.OfType<farm>().Any()
+                                    && !c.Entities.OfType<Food>().Any())
+                                {
+                                    posCells.Add(c);
+                                }
+                            }
+                        }
+
+                        // restrict by queen gestation reach (manhattan)
+                        posCells = posCells.Where(c => Math.Abs(c.X - q.Position.Item1) + Math.Abs(c.Y - q.Position.Item2) <= q.gestationperiod).ToList();
+
+                        if (posCells.Count == 0)
+                        {
+                            // no valid underground spot found -> make queen wander instead this tick
+                            antwander(q);
+                            return;
+                        }
+
+                        var rand = new Random();
+                        var pick = posCells[rand.Next(0, posCells.Count)];
+                        // set the task target to the chosen retr cell and force path recompute
+                        ant.Currenttask.targetposition = (pick.X, pick.Y);
+                        ant.path = null;
+                        tx = pick.X; ty = pick.Y;
+                    }
+
+                    // If not at target, try to path to it
+                    if (ant.Position != ant.Currenttask.targetposition)
+                    {
+                        try
+                        {
+                            pathfind(ant);
+                        }
+                        catch
+                        {
+                            // failed to reach -> release the task
+                            ant.Currenttask = null;
+                            ant.clamedtaskid = -1;
+                            ant.path = null;
+                        }
+                        return;
+                    }
+
+                    // At the chosen underground cell: gestation countdown and waiting
+                    // Use queen.gestationperiod as the countdown (reset when starting a new gestation)
+                    // If gestation has its initial value or is > 0 we count down; if <=0 we initialize it to default (19)
+                    if (q.gestationperiod <= 0)
+                        q.gestationperiod = 19; // start a new gestation cycle
+
+                    // prevent movement while gestating
+                    ant.path = new List<int>();
+
+                    // count down each tick
+                    q.gestationperiod--;
+
+                    if (q.gestationperiod <= 0)
+                    {
+                        // gestation complete -> lay eggs, apply grace/cooldown, free queen for other tasks
+                        q.LayEggs(this);
+                        q.EggGracePeriod = 30;
+                        ant.Currenttask = null;
+                        ant.clamedtaskid = -1;
+                        ant.path = null;
+                    }
+
+
+
                     return;
 
                 case "foodstoregather":
