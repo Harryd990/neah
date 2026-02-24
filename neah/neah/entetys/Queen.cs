@@ -19,6 +19,8 @@ namespace neah.entetys
         public int gestationperiod { get; set; } = 19;
         public int EggGracePeriod { get; set; } = 50;
 
+        public bool retreting { get; set; } = false;
+
         // makes new egg at queen position
         public void LayEggs(Game game)
         {

@@ -19,6 +19,7 @@ namespace neah.main
      *  queen promotion check isnt working too 
      *  the farmwork task is being called multiple times there shold be a check in the update farms task to see if there is already a farm work task for that farm or if there is an ant currently working on the farm before adding a new farm work task to the queue
      * add saving to text file (easy marks)
+     * ants maight not being assigned wander tasks enough
      * 
      * to do on wpf:
      * add a slider for ideal population so queen makes babys up to slider max 
@@ -116,6 +117,7 @@ namespace neah.main
         }
         public void Run()
         {
+
             bool running = true;
             //Thread.Sleep(20); 
 
@@ -130,7 +132,7 @@ namespace neah.main
                 ProcessAntMovementAndTasks();
                 
                 GeneralTickUpdates();
-                                
+
 
 
 
@@ -140,18 +142,63 @@ namespace neah.main
                 // if queen has  food lay eggs 
                 // add stuff so queen has grace period on egg laying 
                 // mb later add queen preference to lay eggs underground cos currently spams eggs on the food source and guzzels it all 
-                if (queen != null && queen.food >= 60 && queen.EggGracePeriod <= 0)
+                if (checkforUnderGroundSpace() && queen.retreting == false)
                 {
-                    //throw new Exception("Queen is laying eggs");
-                    algorithm.Task queenTask = new algorithm.Task(queue1.lasttaskid++, "queenretrete", queen.Position);
+                    if (queen != null && queen.food >= 60 && queen.EggGracePeriod <= 0 &&  queen.retreting == false)
+                    {
+                        // we r getting to here but not fully working i aint asrsed rn 
+                        
+                        //throw new Exception("Queen is laying eggs");
+                        algorithm.Task queenTask = new algorithm.Task(queue1.lasttaskid++, "queenretrete", queen.Position);
+                        // return the queens current task to the queue as long as its not wander then assign the queen a new task 
+                        if (queen.clamedtaskid == -1 || queen.Currenttask.tasktype == "wander")
+                        {
+                            queen.Currenttask = queenTask;
+                            queen.retreting = true;
+                        }
+                        else
+                        {
+                            // add the queens current task to the queue and assign the new task to the queen
+
+                            queue1.addtask(queen.Currenttask);
+                            queen.Currenttask = queenTask;
+                            queen.retreting = true;
+
+                        }
+
+                    }
 
                 }
+
+                 
 
 
                 //Thread.Sleep(10);
             }
         }
-        
+        public bool checkforUnderGroundSpace()
+        {
+            // checks if there is underground space to be used for queen and building validsadton 
+            // for loop from grid hight /4 to grid height 
+            // for loop from 0 to grid width
+            // then use GetCellAtLocation to check if its air
+            for(int y = grid.height / 4; y < grid.height; y++)
+            {
+                for (int x = 0; x < grid.width; x++)
+                {
+                    var cell = grid.GetCellAtLocation(x, y);
+                    if (cell is Air)
+                    {
+                        return true;
+                        
+                    }
+                }
+            }
+            return false;
+
+
+        }
+
         public void QueenPromotionCheck()
         {
             if (queen == null)
@@ -200,6 +247,7 @@ namespace neah.main
             ProcessEggHatching();
             Check4EmptyStores();
             UpdateFarms();
+            QueenPromotionCheck();
             //QueenPromotionCheck();
             // check if there is a food store that isnt full if so add a food store fill task to quue
         }
@@ -685,6 +733,7 @@ namespace neah.main
                         q.LayEggs(this);
                         q.EggGracePeriod = 30;
                         ant.Currenttask = null;
+                        queen.retreting = false;
                         ant.clamedtaskid = -1;
                         ant.path = null;
                     }
