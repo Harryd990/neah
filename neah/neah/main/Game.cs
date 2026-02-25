@@ -14,6 +14,9 @@ namespace neah.main
 {
     /*
      * to do:
+     * ok queen now goes to the spot but now not doing the eggs but making progress 
+     * also ants seem to be roleplaying as queens and getting asigned the queen reetre task some how 
+     * 
      *  fix the queen stuff as shes not actualy making babys and the retr task is buggy and not really working as intended
      *  dont think queen exists like its not showing up with get cell info may be why promotion check not working too
      *  queen promotion check isnt working too 
@@ -144,8 +147,10 @@ namespace neah.main
                 // mb later add queen preference to lay eggs underground cos currently spams eggs on the food source and guzzels it all 
                 if (checkforUnderGroundSpace() && queen.retreting == false)
                 {
-                    if (queen != null && queen.food >= 60 && queen.EggGracePeriod <= 0 &&  queen.retreting == false)
+                    
+                    if (queen != null && queen.food >= 60 && queen.EggGracePeriod <= 0)
                     {
+                        
                         // we r getting to here but not fully working i aint asrsed rn 
                         
                         //throw new Exception("Queen is laying eggs");
@@ -155,6 +160,8 @@ namespace neah.main
                         {
                             queen.Currenttask = queenTask;
                             queen.retreting = true;
+                            queen.clamedtaskid = queenTask.id;
+                            
                         }
                         else
                         {
@@ -163,6 +170,8 @@ namespace neah.main
                             queue1.addtask(queen.Currenttask);
                             queen.Currenttask = queenTask;
                             queen.retreting = true;
+                            queen.clamedtaskid = queenTask.id;
+                            
 
                         }
 
@@ -207,6 +216,7 @@ namespace neah.main
                 var newQueen = ants.OfType<Worker>().FirstOrDefault();
                 if (newQueen != null)
                 {
+                    // need to fix this as its not fully replacing the worker with the queen and is causing issues with the grid and get cell info and stuff
                     queen = new Queen(newQueen.Id, 'Q');
                     var cell = grid.GetCellAtLocation(newQueen.Position.Item1, newQueen.Position.Item2);
                     cell.RemoveEntity(newQueen);
@@ -649,98 +659,101 @@ namespace neah.main
                     ant.path = null;
                     return;
 
-                
-                    
+
+
                 case "queenretrete":
-                    var q = ant as Queen;
-                    if (q == null) return;
-
-                    // Validate current target; if it's not a valid underground open cell, pick a new one
-                    bool currentTargetValid = grid.IsInGridRange(tx, ty)
-                        && UnderGAndOpen((tx, ty), grid.height)
-                        && !grid.GetCellAtLocation(tx, ty).Entities.OfType<FoodStore>().Any()
-                        && !grid.GetCellAtLocation(tx, ty).Entities.OfType<farm>().Any()
-                        && !grid.GetCellAtLocation(tx, ty).Entities.OfType<Food>().Any();
-
-                    if (!currentTargetValid)
                     {
-                        var posCells = new List<Cell>();
-                        for (int x = 0; x < grid.width; x++)
+                        var q = ant as Queen;
+                        if (q == null) return;
+
+                        // Helper: Find a valid underground open cell (not dirt, not occupied, not current queen position)
+                        (int x, int y)? FindUndergroundTarget()
                         {
-                            for (int y = 0; y < grid.height; y++)
+                            var candidates = new List<(int, int)>();
+                            for (int y = grid.height / 4; y < grid.height; y++)
                             {
-                                var c = grid.GetCellAtLocation(x, y);
-                                if (UnderGAndOpen((x, y), grid.height)
-                                    && !c.Entities.OfType<FoodStore>().Any()
-                                    && !c.Entities.OfType<farm>().Any()
-                                    && !c.Entities.OfType<Food>().Any())
+                                for (int x = 0; x < grid.width; x++)
                                 {
-                                    posCells.Add(c);
+                                    var cell = grid.GetCellAtLocation(x, y);
+                                    if (cell is Air &&
+                                        !cell.Entities.OfType<FoodStore>().Any() &&
+                                        !cell.Entities.OfType<farm>().Any() &&
+                                        !cell.Entities.OfType<Food>().Any() &&
+                                        (x, y) != q.Position)
+                                    {
+                                        candidates.Add((x, y));
+                                    }
                                 }
                             }
+                            if (candidates.Count == 0) return null;
+                            var rand = new Random();
+                            return candidates[rand.Next(candidates.Count)];
                         }
 
-                        // restrict by queen gestation reach (manhattan)
-                        posCells = posCells.Where(c => Math.Abs(c.X - q.Position.Item1) + Math.Abs(c.Y - q.Position.Item2) <= q.gestationperiod).ToList();
+                        // Validate current target; if not valid, pick a new one
+                        bool currentTargetValid =
+                            grid.IsInGridRange(task.targetposition.Item1, task.targetposition.Item2) &&
+                            UnderGAndOpen(task.targetposition, grid.height) &&
+                            !grid.GetCellAtLocation(task.targetposition.Item1, task.targetposition.Item2).Entities.OfType<FoodStore>().Any() &&
+                            !grid.GetCellAtLocation(task.targetposition.Item1, task.targetposition.Item2).Entities.OfType<farm>().Any() &&
+                            !grid.GetCellAtLocation(task.targetposition.Item1, task.targetposition.Item2).Entities.OfType<Food>().Any();
 
-                        if (posCells.Count == 0)
+                        if (!currentTargetValid || task.targetposition == q.Position)
                         {
-                            // no valid underground spot found -> make queen wander instead this tick
-                            antwander(q);
+                            var newTarget = FindUndergroundTarget();
+                            if (newTarget == null)
+                            {
+                                // Nowhere to go, fallback to wander
+                                antwander(q);
+                                return;
+                            }
+                            ant.Currenttask.targetposition = newTarget.Value;
+                            ant.path = null;
+                        }
+
+                        // If not at target, pathfind and move
+                        if (q.Position != ant.Currenttask.targetposition)
+                        {
+                            try
+                            {
+                                pathfind(q);
+                            }
+                            catch
+                            {
+                                // Can't reach, clear task
+                                ant.Currenttask = null;
+                                ant.clamedtaskid = -1;
+                                ant.path = null;
+                                q.retreting = false;
+                                return;
+                            }
                             return;
                         }
 
-                        var rand = new Random();
-                        var pick = posCells[rand.Next(0, posCells.Count)];
-                        // set the task target to the chosen retr cell and force path recompute
-                        ant.Currenttask.targetposition = (pick.X, pick.Y);
-                        ant.path = null;
-                        tx = pick.X; ty = pick.Y;
-                    }
-
-                    // If not at target, try to path to it
-                    if (ant.Position != ant.Currenttask.targetposition)
-                    {
-                        try
+                        // At target: gestate and lay eggs
+                        // Only set gestationperiod if it's not already counting down
+                        if (q.gestationperiod <= 0)
                         {
-                            pathfind(ant);
+                            q.gestationperiod = 19; // start gestation
                         }
-                        catch
+                        else
                         {
-                            // failed to reach -> release the task
+                            q.gestationperiod--;
+                        }
+
+                        ant.path = new List<int>(); // prevent movement
+
+                        if (q.gestationperiod == 0)
+                        {
+                            q.LayEggs(this);
+                            q.EggGracePeriod = 30;
                             ant.Currenttask = null;
                             ant.clamedtaskid = -1;
                             ant.path = null;
+                            q.retreting = false;
                         }
                         return;
                     }
-
-                    // At the chosen underground cell: gestation countdown and waiting
-                    // Use queen.gestationperiod as the countdown (reset when starting a new gestation)
-                    // If gestation has its initial value or is > 0 we count down; if <=0 we initialize it to default (19)
-                    if (q.gestationperiod <= 0)
-                        q.gestationperiod = 19; // start a new gestation cycle
-
-                    // prevent movement while gestating
-                    ant.path = new List<int>();
-
-                    // count down each tick
-                    q.gestationperiod--;
-
-                    if (q.gestationperiod <= 0)
-                    {
-                        // gestation complete -> lay eggs, apply grace/cooldown, free queen for other tasks
-                        q.LayEggs(this);
-                        q.EggGracePeriod = 30;
-                        ant.Currenttask = null;
-                        queen.retreting = false;
-                        ant.clamedtaskid = -1;
-                        ant.path = null;
-                    }
-
-
-
-                    return;
 
                 case "foodstoregather":
                     // remember the store target
@@ -1238,16 +1251,16 @@ namespace neah.main
         {
             grid.PrintGrid();
         }
-        public void antwander(Ant ant )
+        public void antwander(Ant ant)
         {
-            if (queue1.tasks.Count == 0 && ant.clamedtaskid == -1)
+            if (queue1.tasks.Count < GetAllAnts().Count && ant.clamedtaskid == -1)
             {
                 Random rand = new Random();
                 int x = rand.Next(GridWidth);
                 int y = rand.Next(0, GridHeight / 4);
                 algorithm.Task wander = new algorithm.Task(queue1.lasttaskid++, "wander", (x, y));
                 ant.Currenttask = wander;
-                ant .clamedtaskid = -1;
+                ant.clamedtaskid = -1;
             }
         }
         /*
