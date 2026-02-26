@@ -16,6 +16,9 @@ namespace neah.main
      * to do:
      * ok queen now goes to the spot but now not doing the eggs but making progress 
      * also ants seem to be roleplaying as queens and getting asigned the queen reetre task some how 
+     * clamp down on tasks being directly asigned to ants (remove it as putting tasks back into the queue fucks it all up) 
+     * queen might b more fucked the b4 
+     * clean ts up too 
      * 
      *  fix the queen stuff as shes not actualy making babys and the retr task is buggy and not really working as intended
      *  dont think queen exists like its not showing up with get cell info may be why promotion check not working too
@@ -421,10 +424,15 @@ namespace neah.main
                     var task = queue1.getnexttask(this, ant);
                     if (task != null)
                     {
+                        // Only allow the queen to claim queenretrete tasks
+                        if (task.tasktype == "queenretrete" && !(ant is Queen))
+                        {
+                            // Skip this ant for this task
+                            continue;
+                        }
                         ant.Currenttask = task;
                         ant.clamedtaskid = task.id;
-                        ant.path = null; // force path recompute
-                                         // Remove the task from the queue if your getnexttask doesn't already do this
+                        ant.path = null;
                         queue1.removetask(task.id);
                     }
                 }
@@ -666,6 +674,9 @@ namespace neah.main
                         var q = ant as Queen;
                         if (q == null) return;
 
+                        // Only the queen should ever have this task, but double-check
+                        if (!(ant is Queen)) return;
+
                         // Helper: Find a valid underground open cell (not dirt, not occupied, not current queen position)
                         (int x, int y)? FindUndergroundTarget()
                         {
@@ -736,14 +747,13 @@ namespace neah.main
                         {
                             q.gestationperiod = 19; // start gestation
                         }
-                        else
-                        {
-                            q.gestationperiod--;
-                        }
 
                         ant.path = new List<int>(); // prevent movement
 
-                        if (q.gestationperiod == 0)
+                        // Decrement gestationperiod and check for egg laying
+                        q.gestationperiod--;
+
+                        if (q.gestationperiod <= 0)
                         {
                             q.LayEggs(this);
                             q.EggGracePeriod = 30;
