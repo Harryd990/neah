@@ -14,14 +14,7 @@ namespace neah.main
 {
     /*
      * to do:
-     * ok queen now goes to the spot but now not doing the eggs but making progress 
-     * also ants seem to be roleplaying as queens and getting asigned the queen reetre task some how 
-     * clamp down on tasks being directly asigned to ants (remove it as putting tasks back into the queue fucks it all up) 
-     * queen might b more fucked the b4 
-     * clean ts up too 
      * 
-     *  fix the queen stuff as shes not actualy making babys and the retr task is buggy and not really working as intended
-     *  dont think queen exists like its not showing up with get cell info may be why promotion check not working too
      *  queen promotion check isnt working too 
      *  the farmwork task is being called multiple times there shold be a check in the update farms task to see if there is already a farm work task for that farm or if there is an ant currently working on the farm before adding a new farm work task to the queue
      * add saving to text file (easy marks)
@@ -418,22 +411,25 @@ namespace neah.main
             var ants = GetAllAnts();
             foreach (var ant in ants)
             {
-                // Only assign a new task if the ant is idle (no current task)
+                // Only assign a new task if the ant is idle (no current task OR no claimed id)
                 if (ant.Currenttask == null || ant.clamedtaskid == -1)
                 {
                     var task = queue1.getnexttask(this, ant);
                     if (task != null)
                     {
-                        // Only allow the queen to claim queenretrete tasks
-                        if (task.tasktype == "queenretrete" && !(ant is Queen))
+                        // Only allow the queen to claim "queenretrete" tasks.
+                        // If a non-queen pulled it, re-enqueue the task and skip this ant.
+                        if (string.Equals(task.tasktype, "queenretrete", StringComparison.OrdinalIgnoreCase) && !(ant is Queen))
                         {
-                            // Skip this ant for this task
+                            queue1.addtask(task); // put it back for the queen later
                             continue;
                         }
+
+                        // Claim and assign the task to this ant
                         ant.Currenttask = task;
                         ant.clamedtaskid = task.id;
                         ant.path = null;
-                        queue1.removetask(task.id);
+                        // Note: getnexttask already removed the task from the queue list.
                     }
                 }
             }
@@ -519,7 +515,7 @@ namespace neah.main
                 }
                 else
                 {
-                    // kinda redundent now (check the queue class)
+                    // kinda redundant now (check the queue class)
                     antwander(ant);
                 }
             }
@@ -677,22 +673,21 @@ namespace neah.main
                         // Only the queen should ever have this task, but double-check
                         if (!(ant is Queen)) return;
 
-                        // Helper: Find a valid underground open cell (not dirt, not occupied, not current queen position)
+                        // Helper: Find a valid underground open cell (not dirt, not occupied by farms/stores/food)
                         (int x, int y)? FindUndergroundTarget()
                         {
                             var candidates = new List<(int, int)>();
-                            for (int y = grid.height / 4; y < grid.height; y++)
+                            for (int yy = grid.height / 4; yy < grid.height; yy++)
                             {
-                                for (int x = 0; x < grid.width; x++)
+                                for (int xx = 0; xx < grid.width; xx++)
                                 {
-                                    var cell = grid.GetCellAtLocation(x, y);
+                                    var cell = grid.GetCellAtLocation(xx, yy);
                                     if (cell is Air &&
                                         !cell.Entities.OfType<FoodStore>().Any() &&
                                         !cell.Entities.OfType<farm>().Any() &&
-                                        !cell.Entities.OfType<Food>().Any() &&
-                                        (x, y) != q.Position)
+                                        !cell.Entities.OfType<Food>().Any())
                                     {
-                                        candidates.Add((x, y));
+                                        candidates.Add((xx, yy));
                                     }
                                 }
                             }
@@ -701,7 +696,7 @@ namespace neah.main
                             return candidates[rand.Next(candidates.Count)];
                         }
 
-                        // Validate current target; if not valid, pick a new one
+                        // Validate current target cell. If invalid, try to pick a new valid underground cell.
                         bool currentTargetValid =
                             grid.IsInGridRange(task.targetposition.Item1, task.targetposition.Item2) &&
                             UnderGAndOpen(task.targetposition, grid.height) &&
@@ -709,12 +704,13 @@ namespace neah.main
                             !grid.GetCellAtLocation(task.targetposition.Item1, task.targetposition.Item2).Entities.OfType<farm>().Any() &&
                             !grid.GetCellAtLocation(task.targetposition.Item1, task.targetposition.Item2).Entities.OfType<Food>().Any();
 
-                        if (!currentTargetValid || task.targetposition == q.Position)
+                        // IMPORTANT: If the queen is already standing on a valid target, we should NOT pick a new target.
+                        if (!currentTargetValid)
                         {
                             var newTarget = FindUndergroundTarget();
                             if (newTarget == null)
                             {
-                                // Nowhere to go, fallback to wander
+                                // No valid underground place — fallback to wander
                                 antwander(q);
                                 return;
                             }
@@ -731,7 +727,7 @@ namespace neah.main
                             }
                             catch
                             {
-                                // Can't reach, clear task
+                                // Can't reach, clear task and clear retreating flag
                                 ant.Currenttask = null;
                                 ant.clamedtaskid = -1;
                                 ant.path = null;
@@ -741,17 +737,20 @@ namespace neah.main
                             return;
                         }
 
-                        // At target: gestate and lay eggs
-                        // Only set gestationperiod if it's not already counting down
+                        // At target: begin gestation if needed
                         if (q.gestationperiod <= 0)
                         {
                             q.gestationperiod = 19; // start gestation
                         }
 
-                        ant.path = new List<int>(); // prevent movement
+                        // Prevent movement while gestating/laying
+                        ant.path = new List<int>();
 
                         // Decrement gestationperiod and check for egg laying
                         q.gestationperiod--;
+
+                        // Debug: show remaining gestation ticks (remove or reduce later)
+                        Console.WriteLine($"Queen gestation ticks remaining: {q.gestationperiod}");
 
                         if (q.gestationperiod <= 0)
                         {
@@ -761,6 +760,7 @@ namespace neah.main
                             ant.clamedtaskid = -1;
                             ant.path = null;
                             q.retreting = false;
+                            Console.WriteLine($"Queen laid eggs at ({q.Position.Item1},{q.Position.Item2})");
                         }
                         return;
                     }

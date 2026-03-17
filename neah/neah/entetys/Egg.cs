@@ -17,8 +17,8 @@ namespace neah.entetys
         public int hatchTime { get; set; } = 20;
         public void HatchEgg(Game game)
         {
-            int y = Position.Item1;
-            int x = Position.Item2;
+            int y = Position.Item2;
+            int x = Position.Item1;
             var worker = new Worker(game.lastEntityId++, 'A');
             game.AddEntityToGameGrid(x, y, worker);
             game.lastEntityId++;

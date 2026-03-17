@@ -17,10 +17,12 @@ namespace neah.algorithm
         
         public List<Task> tasks = new List<Task>();
         public int lasttaskid = 0;
+
         public void addtask(Task newtask)
         {
             tasks.Add(newtask);
         }
+
         public void removetask(int taskid)
         {
             for (int i = 0; i < tasks.Count; i++)
@@ -28,37 +30,24 @@ namespace neah.algorithm
                 if (tasks[i].id == taskid)
                 {
                     tasks.RemoveAt(i);
+                    i--;
                 }
             }
         }
+
+        // NOTE: this method no longer mutates the ant (does not set ant.clamedtaskid).
+        // The caller should validate and then claim the task on the ant.
         public Task getnexttask(Game game, Ant ant)
         {
             /*
-            if (tasks.Count == 0)
-            {
-                throw new Exception("the wander func isnt working");
-            }
-            // could remove the queen stuff cos kinda useless w this implementation
-            if (game.QueenFoodCount <40)
-            {
-                for (int i = 0; i < tasks.Count; i++)
-                {
-                    if (tasks[i].tasktype == "gatherfood")
-                    {
-                        Task foodtask = tasks[i];
-                        tasks.RemoveAt(i);
-                        ant.clamedtaskid = foodtask.id;
-                        return foodtask;
-                    }
-                }
-            }
-            this is redundent stuff can be removed but this is the place to add priority based tasking 
-            */
+             * Keep priority logic here if needed.
+             * Important: return the next task (and remove it from internal list) but do NOT modify the ant.
+             */
+
             if (tasks.Count > 0)
             {
                 Task nexttask = tasks[0];
                 tasks.RemoveAt(0);
-                ant.clamedtaskid = nexttask.id;
                 return nexttask;
             }
             else
@@ -69,16 +58,8 @@ namespace neah.algorithm
                 algorithm.Task wander = new algorithm.Task(lasttaskid++, "wander", (x, y));
                 return wander;
             }
-            
-
-                
-
-            
-           
-
-
         }
         
     }
-    // add priority queue for ant tasks but priorities should change dynamicaly based off average ant food levels 
+    // add priority queue for ant tasks but priorities should change dynamically based on colony state
 }
